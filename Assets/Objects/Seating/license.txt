@@ -1,0 +1,11 @@
+Model Information:
+* title:	Seating
+* source:	https://sketchfab.com/3d-models/seating-9a7040f72e264471a4086a1249822431
+* author:	Krish (https://sketchfab.com/KRish1640)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Seating" (https://sketchfab.com/3d-models/seating-9a7040f72e264471a4086a1249822431) by Krish (https://sketchfab.com/KRish1640) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -1,0 +1,8 @@
+Model Information:
+* title:	Soccer Ball
+* source:	https://sketchfab.com/3d-models/soccer-ball-3f26c2d9d3304c55bc192554dd619615
+* author:	OmReW (https://sketchfab.com/omermelihboss)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
