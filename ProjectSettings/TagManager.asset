@@ -6,6 +6,8 @@ TagManager:
   tags:
   - BlendPlane0
   - BlendPlane1
+  - BlueTeam
+  - RedTeam
   layers:
   - Default
   - TransparentFX
