@@ -8,6 +8,7 @@ TagManager:
   - BlendPlane1
   - BlueTeam
   - RedTeam
+  - Ball
   layers:
   - Default
   - TransparentFX
