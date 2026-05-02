@@ -1,2 +1,18 @@
 fileFormatVersion: 2
 guid: 48b9f233992a0594dbff6d89c0132b82
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - blueScoreText: {instanceID: 0}
+  - redScoreText: {instanceID: 0}
+  - goalPanel: {instanceID: 0}
+  - blueGoalImage: {instanceID: 0}
+  - redGoalImage: {instanceID: 0}
+  - goalSound: {instanceID: 0}
+  - ball: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

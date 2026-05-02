@@ -8046,6 +8046,7 @@ MonoBehaviour:
   blueGoalImage: {fileID: 1701510439}
   redGoalImage: {fileID: 641835048}
   resetDelay: 2.5
+  goalSound: {fileID: 8300000, guid: 65c90cfba335db6459ddc0baf1810fbe, type: 3}
   ball: {fileID: 1667690028}
 --- !u!4 &1900110751
 Transform:

@@ -3,10 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-/// <summary>
-/// Manages game state: score tracking, goal events, and match reset.
-/// Place this script on an empty GameObject called "GameManager" in the scene.
-/// </summary>
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -16,19 +12,21 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text redScoreText;
 
     [Header("Goal Feedback")]
-    [SerializeField] private GameObject goalPanel;          // Panel que se activa al marcar gol
-    [SerializeField] private UnityEngine.UI.Image blueGoalImage;  // Imagen que aparece cuando marca el equipo azul
-    [SerializeField] private UnityEngine.UI.Image redGoalImage;   // Imagen que aparece cuando marca el equipo rojo
-    [SerializeField] private float resetDelay = 2.5f;      // Segundos antes de resetear
+    [SerializeField] private GameObject goalPanel;
+    [SerializeField] private UnityEngine.UI.Image blueGoalImage;
+    [SerializeField] private UnityEngine.UI.Image redGoalImage;
+    [SerializeField] private float resetDelay = 2.5f;
+
+    [Header("Goal Sound")]
+    [SerializeField] private AudioClip goalSound;
+    private AudioSource audioSource;
 
     [Header("Ball")]
     [SerializeField] private GameObject ball;
 
-    // Scores
     private int blueScore = 0;
     private int redScore = 0;
 
-    // Stores every puck + the ball's original transform so we can restore them
     private struct SavedTransform
     {
         public Vector3 position;
@@ -36,24 +34,16 @@ public class GameManager : MonoBehaviour
     }
 
     private Dictionary<Rigidbody, SavedTransform> initialTransforms = new Dictionary<Rigidbody, SavedTransform>();
-
-    // Prevents multiple goals being registered during the reset delay
     private bool goalInProgress = false;
-
-    // -------------------------------------------------------------------------
-    // Unity lifecycle
-    // -------------------------------------------------------------------------
 
     private void Awake()
     {
-        // Singleton pattern
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
         Instance = this;
-
         SaveInitialTransforms();
     }
 
@@ -61,25 +51,19 @@ public class GameManager : MonoBehaviour
     {
         UpdateScoreUI();
 
-        // Make sure the goal panel starts hidden
         if (goalPanel != null)
             goalPanel.SetActive(false);
+
+        // Crear AudioSource automáticamente
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
     }
 
-    // -------------------------------------------------------------------------
-    // Public API called by GoalDetector
-    // -------------------------------------------------------------------------
-
-    /// <summary>
-    /// Call this when the ball enters a goal.
-    /// scoringTeam should be "BlueTeam" or "RedTeam".
-    /// </summary>
     public void GoalScored(string scoringTeam)
     {
         if (goalInProgress) return;
         goalInProgress = true;
 
-        // Update score
         if (scoringTeam == "BlueTeam")
             blueScore++;
         else if (scoringTeam == "RedTeam")
@@ -88,14 +72,15 @@ public class GameManager : MonoBehaviour
         UpdateScoreUI();
         Debug.Log($"[GameManager] GOAL! {scoringTeam} scores. Blue {blueScore} - Red {redScore}");
 
-        // Mostrar panel con la imagen del equipo que ha marcado
+        // Reproducir sonido de gol
+        if (goalSound != null && audioSource != null)
+            audioSource.PlayOneShot(goalSound);
+
         if (goalPanel != null)
         {
-            // Ocultar ambas imagenes primero
             if (blueGoalImage != null) blueGoalImage.gameObject.SetActive(false);
             if (redGoalImage != null) redGoalImage.gameObject.SetActive(false);
 
-            // Activar solo la imagen del equipo que ha marcado
             if (scoringTeam == "BlueTeam" && blueGoalImage != null)
                 blueGoalImage.gameObject.SetActive(true);
             else if (scoringTeam == "RedTeam" && redGoalImage != null)
@@ -107,19 +92,10 @@ public class GameManager : MonoBehaviour
         StartCoroutine(ResetMatchAfterDelay());
     }
 
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
-
-    /// <summary>
-    /// Saves the starting position/rotation of the ball and all pucks so we can
-    /// restore them after each goal.
-    /// </summary>
     private void SaveInitialTransforms()
     {
         initialTransforms.Clear();
 
-        // Save ball
         if (ball != null)
         {
             var rb = ball.GetComponent<Rigidbody>();
@@ -131,7 +107,6 @@ public class GameManager : MonoBehaviour
                 };
         }
 
-        // Save all pucks (tagged BlueTeam or RedTeam)
         SaveTaggedObjects("BlueTeam");
         SaveTaggedObjects("RedTeam");
     }
@@ -153,7 +128,6 @@ public class GameManager : MonoBehaviour
     private IEnumerator ResetMatchAfterDelay()
     {
         yield return new WaitForSeconds(resetDelay);
-
         ResetAllPositions();
 
         if (goalPanel != null)
@@ -162,10 +136,6 @@ public class GameManager : MonoBehaviour
         goalInProgress = false;
     }
 
-    /// <summary>
-    /// Teleports every saved Rigidbody back to its initial position and
-    /// zeroes out any velocity so physics restarts cleanly.
-    /// </summary>
     private void ResetAllPositions()
     {
         foreach (var pair in initialTransforms)
