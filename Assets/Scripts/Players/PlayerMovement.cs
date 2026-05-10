@@ -1,43 +1,64 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
-    // Start is called before the first frame update
+    [Header("Player Settings")]
+    public int playerID;
+    public float kickForce = 15f;
+    [Header("Tracking Data")]
     public Quaternion q;
     public bool manual;
-    void Start()
-    {
 
-    }
-
-    // Update is called once per frame
     void Update()
     {
-
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            PerformKick();
+        }
     }
 
-    // Setter for position
+    public void PerformKick()
+    {
+        string myTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
+        if (GameManager.Instance.currentTurnTeam != myTeam)
+        {
+            Debug.Log($"Jugador {playerID} ha intentat xutar però no és el seu torn!");
+            return;
+        }
+        GameObject targetPuck = (playerID == 1)
+            ? GameManager.Instance.selectedRedPuck
+            : GameManager.Instance.selectedBluePuck;
+        if (targetPuck != null)
+        {
+            Rigidbody rb = targetPuck.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                Vector3 shootDirection = transform.forward;
+                shootDirection.y = 0;
+                rb.AddForce(shootDirection.normalized * kickForce, ForceMode.Impulse);
+                Debug.Log($"Jugador {playerID} ha xutat la fitxa {targetPuck.name}");
+                GameManager.Instance.SwitchTurn();
+            }
+        }
+    }
+
     public void SetPosition(Vector3 pos)
     {
         transform.position = pos;
     }
 
-    // Getter for position
     public Vector3 GetPosition()
     {
         return transform.position;
     }
 
-    // Setter for rotation
     public void SetRotation(Quaternion rot)
     {
         transform.rotation = rot;
     }
 
-    // Getter for rotation
     public Quaternion GetRotation()
     {
         return transform.rotation;

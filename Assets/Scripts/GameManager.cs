@@ -2,159 +2,183 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-
-    [Header("Score UI (assign TMP Text objects from the Scoreboard)")]
     [SerializeField] private TMP_Text blueScoreText;
     [SerializeField] private TMP_Text redScoreText;
-
-    [Header("Goal Feedback")]
     [SerializeField] private GameObject goalPanel;
-    [SerializeField] private UnityEngine.UI.Image blueGoalImage;
-    [SerializeField] private UnityEngine.UI.Image redGoalImage;
+    [SerializeField] private Image blueGoalImage;
+    [SerializeField] private Image redGoalImage;
     [SerializeField] private float resetDelay = 2.5f;
-
-    [Header("Goal Sound")]
     [SerializeField] private AudioClip goalSound;
     private AudioSource audioSource;
-
-    [Header("Ball")]
     [SerializeField] private GameObject ball;
-
+    public string currentTurnTeam;
+    public GameObject selectedBluePuck;
+    public GameObject selectedRedPuck;
+    private List<GameObject> bluePucks = new List<GameObject>();
+    private List<GameObject> redPucks = new List<GameObject>();
+    private int blueIndex = 0;
+    private int redIndex = 0;
     private int blueScore = 0;
     private int redScore = 0;
-
-    private struct SavedTransform
-    {
-        public Vector3 position;
-        public Quaternion rotation;
-    }
-
-    private Dictionary<Rigidbody, SavedTransform> initialTransforms = new Dictionary<Rigidbody, SavedTransform>();
     private bool goalInProgress = false;
+    private struct SavedTransform { public Vector3 pos; public Quaternion rot; }
+    private Dictionary<Rigidbody, SavedTransform> initialTransforms = new Dictionary<Rigidbody, SavedTransform>();
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
         Instance = this;
-        SaveInitialTransforms();
     }
 
     private void Start()
     {
+        currentTurnTeam = (Random.value > 0.5f) ? "BlueTeam" : "RedTeam";
+        Debug.Log("Inici del partit! Comença: " + currentTurnTeam);
+        SaveInitialTransforms();
+        InitializePuckLists();
         UpdateScoreUI();
-
         if (goalPanel != null)
+        {
             goalPanel.SetActive(false);
-
-        // Crear AudioSource automáticamente
+        }
         audioSource = gameObject.AddComponent<AudioSource>();
-        audioSource.playOnAwake = false;
+    }
+
+    private void InitializePuckLists()
+    {
+        bluePucks.AddRange(GameObject.FindGameObjectsWithTag("BlueTeam"));
+        redPucks.AddRange(GameObject.FindGameObjectsWithTag("RedTeam"));
+        if (bluePucks.Count > 0)
+        {
+            selectedBluePuck = bluePucks[0];
+        }   
+        if (redPucks.Count > 0)
+        {
+            selectedRedPuck = redPucks[0];
+        }
+        UpdateVisualSelection();
+    }
+
+    public void OnPlayerCrouch(int playerID)
+    {
+        if (goalInProgress) return;
+        string playerTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
+        if (playerTeam != currentTurnTeam) return;
+        if (playerID == 1 && redPucks.Count > 0)
+        {
+            redIndex = (redIndex + 1) % redPucks.Count;
+            selectedRedPuck = redPucks[redIndex];
+        }
+        else if (playerID == 2 && bluePucks.Count > 0)
+        {
+            blueIndex = (blueIndex + 1) % bluePucks.Count;
+            selectedBluePuck = bluePucks[blueIndex];
+        }
+        UpdateVisualSelection();
+    }
+
+    private void UpdateVisualSelection()
+    {
+        foreach (var p in bluePucks)
+        {
+            LineRenderer lr = p.GetComponent<LineRenderer>();
+            if (lr != null) lr.enabled = (p == selectedBluePuck && currentTurnTeam == "BlueTeam");
+        }
+        foreach (var p in redPucks)
+        {
+            LineRenderer lr = p.GetComponent<LineRenderer>();
+            if (lr != null) lr.enabled = (p == selectedRedPuck && currentTurnTeam == "RedTeam");
+        }
     }
 
     public void GoalScored(string scoringTeam)
     {
-        if (goalInProgress) return;
-        goalInProgress = true;
-
-        if (scoringTeam == "BlueTeam")
-            blueScore++;
-        else if (scoringTeam == "RedTeam")
-            redScore++;
-
-        UpdateScoreUI();
-        Debug.Log($"[GameManager] GOAL! {scoringTeam} scores. Blue {blueScore} - Red {redScore}");
-
-        // Reproducir sonido de gol
-        if (goalSound != null && audioSource != null)
-            audioSource.PlayOneShot(goalSound);
-
-        if (goalPanel != null)
+        if (goalInProgress)
         {
-            if (blueGoalImage != null) blueGoalImage.gameObject.SetActive(false);
-            if (redGoalImage != null) redGoalImage.gameObject.SetActive(false);
-
-            if (scoringTeam == "BlueTeam" && blueGoalImage != null)
-                blueGoalImage.gameObject.SetActive(true);
-            else if (scoringTeam == "RedTeam" && redGoalImage != null)
-                redGoalImage.gameObject.SetActive(true);
-
-            goalPanel.SetActive(true);
+            return;
         }
-
+        goalInProgress = true;
+        if (scoringTeam == "BlueTeam")
+        {
+            blueScore++;
+            currentTurnTeam = "RedTeam";
+        }
+        else
+        {
+            redScore++;
+            currentTurnTeam = "BlueTeam";
+        }
+        UpdateScoreUI();
+        if (goalSound)
+        {
+            audioSource.PlayOneShot(goalSound);
+        }
+        if (goalPanel)
+        {
+            goalPanel.SetActive(true);
+            blueGoalImage?.gameObject.SetActive(scoringTeam == "BlueTeam");
+            redGoalImage?.gameObject.SetActive(scoringTeam == "RedTeam");
+        }
         StartCoroutine(ResetMatchAfterDelay());
     }
 
     private void SaveInitialTransforms()
     {
-        initialTransforms.Clear();
-
-        if (ball != null)
+        if (ball)
         {
-            var rb = ball.GetComponent<Rigidbody>();
-            if (rb != null)
-                initialTransforms[rb] = new SavedTransform
-                {
-                    position = ball.transform.position,
-                    rotation = ball.transform.rotation
-                };
+            SaveRB(ball.GetComponent<Rigidbody>());
         }
-
-        SaveTaggedObjects("BlueTeam");
-        SaveTaggedObjects("RedTeam");
+        foreach (GameObject g in GameObject.FindGameObjectsWithTag("BlueTeam")) SaveRB(g.GetComponent<Rigidbody>());
+        foreach (GameObject g in GameObject.FindGameObjectsWithTag("RedTeam")) SaveRB(g.GetComponent<Rigidbody>());
     }
 
-    private void SaveTaggedObjects(string tag)
+    private void SaveRB(Rigidbody rb)
     {
-        foreach (GameObject go in GameObject.FindGameObjectsWithTag(tag))
+        if (rb)
         {
-            var rb = go.GetComponent<Rigidbody>();
-            if (rb != null)
-                initialTransforms[rb] = new SavedTransform
-                {
-                    position = go.transform.position,
-                    rotation = go.transform.rotation
-                };
+            initialTransforms[rb] = new SavedTransform { pos = rb.position, rot = rb.rotation };
         }
     }
 
     private IEnumerator ResetMatchAfterDelay()
     {
         yield return new WaitForSeconds(resetDelay);
-        ResetAllPositions();
-
-        if (goalPanel != null)
-            goalPanel.SetActive(false);
-
-        goalInProgress = false;
-    }
-
-    private void ResetAllPositions()
-    {
-        foreach (var pair in initialTransforms)
+        foreach (var item in initialTransforms)
         {
-            Rigidbody rb = pair.Key;
-            if (rb == null) continue;
-
+            Rigidbody rb = item.Key;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
-            rb.transform.position = pair.Value.position;
-            rb.transform.rotation = pair.Value.rotation;
+            rb.position = item.Value.pos;
+            rb.rotation = item.Value.rot;
         }
-
-        Debug.Log("[GameManager] Match reset.");
+        if (goalPanel)
+        {
+            goalPanel.SetActive(false);
+        }
+        goalInProgress = false;
+        UpdateVisualSelection();
     }
 
     private void UpdateScoreUI()
     {
-        if (blueScoreText != null) blueScoreText.text = blueScore.ToString();
-        if (redScoreText != null) redScoreText.text = redScore.ToString();
+        if (blueScoreText)
+        {
+            blueScoreText.text = blueScore.ToString();
+        }
+        if (redScoreText)
+        {
+            redScoreText.text = redScore.ToString();
+        }
+    }
+
+    public void SwitchTurn()
+    {
+        currentTurnTeam = (currentTurnTeam == "BlueTeam") ? "RedTeam" : "BlueTeam";
+        Debug.Log("Canvi de torn. Ara li toca a: " + currentTurnTeam);
+        UpdateVisualSelection();
     }
 }

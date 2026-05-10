@@ -56,13 +56,14 @@ public class TrackingManager : MonoBehaviour
     private int playerRotDatatSize = 7;
     private float positionUpdateInterval = 0.01f;
     private bool isTrackingInitialized;
+    private bool[] playerWasCrouched;
 
     /// <summary>
     /// Initialize the system.
     /// </summary>
     private void Awake()
     {
-
+        playerWasCrouched = new bool[8];
         // Validate dependencies
         if (calibrationUI == null)
         {
@@ -190,6 +191,15 @@ public class TrackingManager : MonoBehaviour
                         //Calculates the calibrated position using the Calibration data
                         Vector3 calibratedPos = CalibrationUtils.CalibrateRawPos(playersRawPosition, enableYAxis, calibration, virtualWorldSpace);
                         players[i].GetComponent<PlayerMovement>().SetPosition(calibratedPos);
+                        float crouchThreshold = 0.5f;
+                        bool isCurrentlyCrouched = calibratedPos.y < crouchThreshold;
+                        if (isCurrentlyCrouched && !playerWasCrouched[i])
+                        {
+                            int realPlayerID = players[i].GetComponent<PlayerMovement>().playerID;
+                            GameManager.Instance.OnPlayerCrouch(realPlayerID);
+                            Debug.Log($"Jugador {realPlayerID} s'ha ajupit. Canviant fitxa.");
+                        }
+                        playerWasCrouched[i] = isCurrentlyCrouched;
                         calibrationUI.SetPlayerXPos(i, calibratedPos);
 
                         if (enableRotation)
