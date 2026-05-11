@@ -63,21 +63,27 @@ public class GameManager : MonoBehaviour
         UpdateVisualSelection();
     }
 
-    public void OnPlayerCrouch(int playerID)
+    public void OnPlayerCrouch(int playerID, Vector3 playerPosition)
     {
         if (goalInProgress) return;
         string playerTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
         if (playerTeam != currentTurnTeam) return;
-        if (playerID == 1 && redPucks.Count > 0)
+
+        List<GameObject> myPucks = (playerID == 1) ? redPucks : bluePucks;
+        if (myPucks.Count == 0) return;
+
+        // Seleccionar la ficha más cercana a la posición del jugador
+        GameObject closest = null;
+        float minDist = float.MaxValue;
+        foreach (GameObject puck in myPucks)
         {
-            redIndex = (redIndex + 1) % redPucks.Count;
-            selectedRedPuck = redPucks[redIndex];
+            float dist = Vector3.Distance(playerPosition, puck.transform.position);
+            if (dist < minDist) { minDist = dist; closest = puck; }
         }
-        else if (playerID == 2 && bluePucks.Count > 0)
-        {
-            blueIndex = (blueIndex + 1) % bluePucks.Count;
-            selectedBluePuck = bluePucks[blueIndex];
-        }
+
+        if (playerID == 1) selectedRedPuck = closest;
+        else selectedBluePuck = closest;
+
         UpdateVisualSelection();
     }
 

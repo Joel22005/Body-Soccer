@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.IO;
@@ -52,11 +52,14 @@ public class TrackingManager : MonoBehaviour
     [Header("Non-tracking")]
     [SerializeField] private int playerSelected = 1;
     [SerializeField] private int trackingDisabledPlayerSpeed = 5;
+    [SerializeField] private float trackingDisabledRotSpeed = 90f; // <-- añade esta línea
+
 
     private int playerRotDatatSize = 7;
     private float positionUpdateInterval = 0.01f;
     private bool isTrackingInitialized;
     private bool[] playerWasCrouched;
+
 
     /// <summary>
     /// Initialize the system.
@@ -193,12 +196,20 @@ public class TrackingManager : MonoBehaviour
                         players[i].GetComponent<PlayerMovement>().SetPosition(calibratedPos);
                         float crouchThreshold = 0.5f;
                         bool isCurrentlyCrouched = calibratedPos.y < crouchThreshold;
+
+                        // Se agacha → seleccionar ficha más cercana
                         if (isCurrentlyCrouched && !playerWasCrouched[i])
                         {
                             int realPlayerID = players[i].GetComponent<PlayerMovement>().playerID;
-                            GameManager.Instance.OnPlayerCrouch(realPlayerID);
-                            Debug.Log($"Jugador {realPlayerID} s'ha ajupit. Canviant fitxa.");
+                            GameManager.Instance.OnPlayerCrouch(realPlayerID, calibratedPos); // pasa posición
                         }
+
+                        // Se levanta → chutar
+                        if (!isCurrentlyCrouched && playerWasCrouched[i])
+                        {
+                            players[i].GetComponent<PlayerMovement>().KickWithDistance();
+                        }
+
                         playerWasCrouched[i] = isCurrentlyCrouched;
                         calibrationUI.SetPlayerXPos(i, calibratedPos);
 
@@ -288,26 +299,44 @@ public class TrackingManager : MonoBehaviour
     {
         if (players == null || players.Count == 0) return;
         if (playerSelected < 1 || playerSelected > players.Count) return;
-
         GameObject player = players[playerSelected - 1];
         if (player == null || !player.activeSelf) return;
 
-        Vector3 move = Vector3.zero;
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
 
+        // Movimiento WASD
+        Vector3 move = Vector3.zero;
         if (kb.wKey.isPressed) move += Vector3.forward;
         if (kb.sKey.isPressed) move += Vector3.back;
         if (kb.aKey.isPressed) move += Vector3.left;
         if (kb.dKey.isPressed) move += Vector3.right;
+        player.transform.Translate(move * Time.deltaTime * trackingDisabledPlayerSpeed, Space.World);
 
-        player.transform.Translate(move * Time.deltaTime * trackingDisabledPlayerSpeed);
+        // Rotacion Q/E para apuntar
+        if (kb.qKey.isPressed)
+            player.transform.Rotate(Vector3.up, -90f * Time.deltaTime);
+        if (kb.eKey.isPressed)
+            player.transform.Rotate(Vector3.up, 90f * Time.deltaTime);
+
+        // Cambiar ficha con F
+        if (kb.fKey.wasPressedThisFrame)
+        {
+            int pid = player.GetComponent<PlayerMovement>().playerID;
+            GameManager.Instance.OnPlayerCrouch(pid, player.transform.position);
+        }
+
+        // Chute con carga: mantener Space para cargar, soltar para chutar
+        PlayerMovement pm = player.GetComponent<PlayerMovement>();
+        if (kb.spaceKey.wasPressedThisFrame) pm.StartCharge();
+        if (kb.spaceKey.isPressed) pm.UpdateCharge(Time.deltaTime);
+        if (kb.spaceKey.wasReleasedThisFrame) pm.ReleaseKick();
     }
 
-/// <summary>
-/// Ensures tracking is properly disabled during script shutdown.
-/// </summary>
-private void OnDisable()
+    /// <summary>
+    /// Ensures tracking is properly disabled during script shutdown.
+    /// </summary>
+    private void OnDisable()
     {
         if (enableTracking)
         {

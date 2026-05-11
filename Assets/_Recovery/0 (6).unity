@@ -3641,7 +3641,6 @@ GameObject:
   - component: {fileID: 931479204}
   - component: {fileID: 931479203}
   - component: {fileID: 931479206}
-  - component: {fileID: 931479207}
   m_Layer: 0
   m_Name: Player1
   m_TagString: Untagged
@@ -3755,34 +3754,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   playerID: 1
-  minKickForce: 5
-  maxKickForce: 25
-  maxChargeTime: 2
+  kickForce: 15
   q: {x: 0, y: 0, z: 0, w: 0}
   manual: 0
-  maxKickDistance: 3
---- !u!114 &931479207
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 931479201}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 85eff7ab74fcdb04d88164d3733298f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PuckVisualFeedback
-  ringRadius: 1.5
-  ringSegments: 40
-  ringWidth: 1
-  ringColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  minArrowLength: 7
-  maxArrowLength: 10
-  arrowWidth: 1.5
-  colorMin: {r: 0, g: 1, b: 0, a: 1}
-  colorMax: {r: 1, g: 0, b: 0, a: 1}
-  yOffset: 0.05
 --- !u!1 &1019132582
 GameObject:
   m_ObjectHideFlags: 0
@@ -3831,12 +3805,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   playerID: 0
-  minKickForce: 5
-  maxKickForce: 25
-  maxChargeTime: 2
+  kickForce: 15
   q: {x: 0, y: 0, z: 0, w: 0}
   manual: 0
-  maxKickDistance: 3
 --- !u!65 &1019132585
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5150,12 +5121,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   playerID: 0
-  minKickForce: 5
-  maxKickForce: 25
-  maxChargeTime: 2
+  kickForce: 15
   q: {x: 0, y: 0, z: 0, w: 0}
   manual: 0
-  maxKickDistance: 3
 --- !u!65 &1359608447
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8989,7 +8957,6 @@ GameObject:
   - component: {fileID: 2039963494}
   - component: {fileID: 2039963493}
   - component: {fileID: 2039963496}
-  - component: {fileID: 2039963497}
   m_Layer: 0
   m_Name: Player2
   m_TagString: Untagged
@@ -9103,34 +9070,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   playerID: 2
-  minKickForce: 5
-  maxKickForce: 25
-  maxChargeTime: 2
+  kickForce: 15
   q: {x: 0, y: 0, z: 0, w: 0}
   manual: 0
-  maxKickDistance: 3
---- !u!114 &2039963497
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039963491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 85eff7ab74fcdb04d88164d3733298f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PuckVisualFeedback
-  ringRadius: 1.5
-  ringSegments: 40
-  ringWidth: 1
-  ringColor: {r: 0.9479999, g: 0.015686274, b: 1, a: 1}
-  minArrowLength: 7
-  maxArrowLength: 10
-  arrowWidth: 1.5
-  colorMin: {r: 0, g: 1, b: 0, a: 1}
-  colorMax: {r: 1, g: 0, b: 0, a: 1}
-  yOffset: 0.05
 --- !u!1 &2079024911
 GameObject:
   m_ObjectHideFlags: 0
@@ -9177,7 +9119,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrackingManager
   calibrationUI: {fileID: 1154398784}
   trackingInterface: {fileID: 1154398778}
-  enableTracking: 0
+  enableTracking: 1
   numberOfPlayers: 3
   numberOfBaseStations: 4
   enableRotation: 1
@@ -9191,7 +9133,6 @@ MonoBehaviour:
   calibrationSaveFilePath: D:\Calibration\Eje Z
   playerSelected: 1
   trackingDisabledPlayerSpeed: 5
-  trackingDisabledRotSpeed: 90
 --- !u!1 &2092006270
 GameObject:
   m_ObjectHideFlags: 0
