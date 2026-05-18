@@ -1,42 +1,59 @@
 using UnityEngine;
+
+/// <summary>
+/// Mecanica de tirachinas:
+///   - Linea de goma: del jugador a la ficha (muestra la tension)
+///   - Flecha de disparo: desde la ficha en la direccion contraria al jugador
+///   - Color y longitud de la flecha segun la distancia (potencia)
+///   - Anillo alrededor de la ficha seleccionada
+/// </summary>
 [RequireComponent(typeof(PlayerMovement))]
 public class PuckVisualFeedback : MonoBehaviour
 {
     [Header("Anillo de seleccion")]
-    [SerializeField] private float ringRadius = 0.65f;
+    [SerializeField] private float ringRadius = 1.5f;
     [SerializeField] private int ringSegments = 40;
-    [SerializeField] private float ringWidth = 0.05f;
+    [SerializeField] private float ringWidth = 0.08f;
     [SerializeField] private Color ringColor = Color.yellow;
 
-    [Header("Flecha de direccion / potencia")]
-    [SerializeField] private float minArrowLength = 0.5f;
-    [SerializeField] private float maxArrowLength = 4f;
-    [SerializeField] private float arrowWidth = 0.06f;
+    [Header("Flecha de disparo")]
+    [SerializeField] private float minArrowLength = 0.3f;
+    [SerializeField] private float maxArrowLength = 5f;
+    [SerializeField] private float arrowWidth = 0.08f;
     [SerializeField] private Color colorMin = Color.green;
     [SerializeField] private Color colorMax = Color.red;
 
-    [Header("Altura sobre el suelo")]
+    [Header("Linea de goma (tirachinas)")]
+    [SerializeField] private float rubberWidth = 0.04f;
+    [SerializeField] private Color rubberColor = new Color(1f, 1f, 0f, 0.6f);
+
+    [Header("Configuracion")]
     [SerializeField] private float yOffset = 0.05f;
 
-    // LineRenderers creados en tiempo de ejecucion
     private LineRenderer ringLR;
     private LineRenderer arrowLR;
+    private LineRenderer rubberLR;
     private PlayerMovement pm;
     private string myTeam;
 
-    // ---------------------------------------------------------------
     private void Awake()
     {
         pm = GetComponent<PlayerMovement>();
         myTeam = (pm.playerID == 1) ? "RedTeam" : "BlueTeam";
 
         ringLR = CreateLineRenderer("SelectionRing", ringWidth);
-        arrowLR = CreateLineRenderer("DirectionArrow", arrowWidth);
+        arrowLR = CreateLineRenderer("ShootArrow", arrowWidth);
+        rubberLR = CreateLineRenderer("RubberBand", rubberWidth);
 
         BuildRing();
 
         arrowLR.positionCount = 2;
         arrowLR.useWorldSpace = true;
+
+        rubberLR.positionCount = 2;
+        rubberLR.useWorldSpace = true;
+        rubberLR.startColor = rubberColor;
+        rubberLR.endColor = new Color(rubberColor.r, rubberColor.g, rubberColor.b, 0f);
     }
 
     private void Update()
@@ -52,36 +69,45 @@ public class PuckVisualFeedback : MonoBehaviour
         bool show = isMyTurn && puck != null;
         ringLR.enabled = show;
         arrowLR.enabled = show;
+        rubberLR.enabled = show;
 
         if (!show) return;
 
-        Vector3 puckPos = puck.transform.position;
+        // Posiciones aplanadas en Y para que todo quede al nivel del suelo
+        Vector3 puckPos = new Vector3(puck.transform.position.x,
+                                        puck.transform.position.y + yOffset,
+                                        puck.transform.position.z);
+        Vector3 playerPos = new Vector3(transform.position.x,
+                                        puck.transform.position.y + yOffset,
+                                        transform.position.z);
 
-        // --- Anillo ---
-        // El ring esta construido en espacio local; moverlo con el transform
-        ringLR.transform.position = new Vector3(puckPos.x, puckPos.y + yOffset, puckPos.z);
+        // Anillo alrededor de la ficha
+        ringLR.transform.position = puckPos;
 
-        // --- Flecha ---
-        float dist = Vector3.Distance(transform.position, puck.transform.position);
-        float charge = Mathf.Clamp01(dist / pm.maxKickDistance);
-        float length = Mathf.Lerp(minArrowLength, maxArrowLength, charge);
-        Color col = Color.Lerp(colorMin, colorMax, charge);
-        Vector3 dir = transform.forward;
-        dir.y = 0f;
-        if (dir.sqrMagnitude < 0.001f) dir = Vector3.forward;
-        dir.Normalize();
+        // Vector de ficha al jugador (goma del tirachinas)
+        Vector3 toPlayer = playerPos - puckPos;
+        toPlayer.y = 0f;
+        float dist = toPlayer.magnitude;
 
-        Vector3 arrowStart = new Vector3(puckPos.x, puckPos.y + yOffset, puckPos.z);
-        Vector3 arrowEnd = arrowStart + dir * length;
+        // Direccion de disparo = opuesta al jugador
+        Vector3 shootDir = (dist > 0.01f) ? -toPlayer.normalized : Vector3.forward;
 
-        arrowLR.SetPosition(0, arrowStart);
-        arrowLR.SetPosition(1, arrowEnd);
+        // Potencia segun distancia
+        float t = Mathf.Clamp01(dist / pm.maxKickDistance);
+        float arrowLen = Mathf.Lerp(minArrowLength, maxArrowLength, t);
+        Color col = Color.Lerp(colorMin, colorMax, t);
+
+        // Flecha de disparo (desde la ficha hacia donde ira)
+        arrowLR.SetPosition(0, puckPos);
+        arrowLR.SetPosition(1, puckPos + shootDir * arrowLen);
         arrowLR.startColor = col;
-        arrowLR.endColor = new Color(col.r, col.g, col.b, 0f); // fade en la punta
+        arrowLR.endColor = new Color(col.r, col.g, col.b, 0f);
+
+        // Linea de goma (del jugador a la ficha)
+        rubberLR.SetPosition(0, playerPos);
+        rubberLR.SetPosition(1, puckPos);
     }
 
-    // ---------------------------------------------------------------
-    // Construye el anillo como un circulo en espacio local
     private void BuildRing()
     {
         ringLR.loop = true;
@@ -92,8 +118,7 @@ public class PuckVisualFeedback : MonoBehaviour
         {
             float angle = i * Mathf.PI * 2f / ringSegments;
             ringLR.SetPosition(i, new Vector3(
-                Mathf.Cos(angle) * ringRadius,
-                0f,
+                Mathf.Cos(angle) * ringRadius, 0f,
                 Mathf.Sin(angle) * ringRadius));
         }
 
@@ -101,7 +126,6 @@ public class PuckVisualFeedback : MonoBehaviour
         ringLR.endColor = ringColor;
     }
 
-    // Crea un LineRenderer en un GameObject hijo con material basico
     private LineRenderer CreateLineRenderer(string goName, float width)
     {
         GameObject go = new GameObject(goName);

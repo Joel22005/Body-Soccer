@@ -328,9 +328,7 @@ public class TrackingManager : MonoBehaviour
 
         // Chute con carga: mantener Space para cargar, soltar para chutar
         PlayerMovement pm = player.GetComponent<PlayerMovement>();
-        if (kb.spaceKey.wasPressedThisFrame) pm.StartCharge();
-        if (kb.spaceKey.isPressed) pm.UpdateCharge(Time.deltaTime);
-        if (kb.spaceKey.wasReleasedThisFrame) pm.ReleaseKick();
+        if (kb.spaceKey.wasPressedThisFrame) pm.KickWithDistance();
     }
 
     /// <summary>
