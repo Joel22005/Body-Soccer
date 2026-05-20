@@ -50,7 +50,7 @@ public class TrackingManager : MonoBehaviour
 
     // Attributes for non-tracking input
     [Header("Non-tracking")]
-    [SerializeField] private int playerSelected = 1;
+    [SerializeField] private int playerSelected = 0;
     [SerializeField] private int trackingDisabledPlayerSpeed = 5;
     [SerializeField] private float trackingDisabledRotSpeed = 90f; // <-- añade esta línea
 
@@ -60,6 +60,13 @@ public class TrackingManager : MonoBehaviour
     private bool isTrackingInitialized;
     private bool[] playerWasCrouched;
 
+    private float[] crouchStartTime;
+    private bool[] puckSelected;
+
+    [Header("Crouch Settings")]
+    [SerializeField] private float crouchThreshold = 0.5f;
+    [SerializeField] private float safeZoneRadius = 0.5f; // radio del círculo seguro alrededor de la ficha
+
 
     /// <summary>
     /// Initialize the system.
@@ -67,6 +74,8 @@ public class TrackingManager : MonoBehaviour
     private void Awake()
     {
         playerWasCrouched = new bool[8];
+        crouchStartTime = new float[8];
+        puckSelected = new bool[8];
         // Validate dependencies
         if (calibrationUI == null)
         {
@@ -194,20 +203,50 @@ public class TrackingManager : MonoBehaviour
                         //Calculates the calibrated position using the Calibration data
                         Vector3 calibratedPos = CalibrationUtils.CalibrateRawPos(playersRawPosition, enableYAxis, calibration, virtualWorldSpace);
                         players[i].GetComponent<PlayerMovement>().SetPosition(calibratedPos);
-                        float crouchThreshold = 0.5f;
                         bool isCurrentlyCrouched = calibratedPos.y < crouchThreshold;
+                        int playerID = players[i].GetComponent<PlayerMovement>().playerID;
 
-                        // Se agacha → seleccionar ficha más cercana
+                        // Acaba de agacharse → selecciona ficha más cercana
                         if (isCurrentlyCrouched && !playerWasCrouched[i])
                         {
-                            int realPlayerID = players[i].GetComponent<PlayerMovement>().playerID;
-                            GameManager.Instance.OnPlayerCrouch(realPlayerID, calibratedPos); // pasa posición
+                            puckSelected[i] = true;
+                            GameManager.Instance.OnPlayerCrouch(playerID, calibratedPos);
+                            Debug.Log($"[Tracking] Jugador {playerID} selecciona ficha.");
                         }
 
-                        // Se levanta → chutar
-                        if (!isCurrentlyCrouched && playerWasCrouched[i])
+                        // Acaba de levantarse
+                        if (!isCurrentlyCrouched && playerWasCrouched[i] && puckSelected[i])
                         {
-                            players[i].GetComponent<PlayerMovement>().KickWithDistance();
+                            // Obtener la ficha seleccionada
+                            GameObject selectedPuck = (playerID == 1)
+                                ? GameManager.Instance.selectedRedPuck
+                                : GameManager.Instance.selectedBluePuck;
+
+                            bool insideSafeZone = false;
+
+                            if (selectedPuck != null)
+                            {
+                                // Comparar solo en XZ (ignorar altura Y)
+                                Vector2 playerXZ = new Vector2(calibratedPos.x, calibratedPos.z);
+                                Vector2 puckXZ = new Vector2(selectedPuck.transform.position.x,
+                                                               selectedPuck.transform.position.z);
+                                float dist = Vector2.Distance(playerXZ, puckXZ);
+                                insideSafeZone = dist <= safeZoneRadius;
+                            }
+
+                            if (insideSafeZone)
+                            {
+                                // Dentro del círculo → deselecciona sin disparar
+                                puckSelected[i] = false;
+                                Debug.Log($"[Tracking] Jugador {playerID} deselecciona (zona segura).");
+                            }
+                            else
+                            {
+                                // Fuera del círculo → dispara
+                                players[i].GetComponent<PlayerMovement>().KickWithDistance();
+                                puckSelected[i] = false;
+                                Debug.Log($"[Tracking] Jugador {playerID} dispara.");
+                            }
                         }
 
                         playerWasCrouched[i] = isCurrentlyCrouched;

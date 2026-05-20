@@ -52,14 +52,13 @@ public class GameManager : MonoBehaviour
     {
         bluePucks.AddRange(GameObject.FindGameObjectsWithTag("BlueTeam"));
         redPucks.AddRange(GameObject.FindGameObjectsWithTag("RedTeam"));
-        if (bluePucks.Count > 0)
-        {
-            selectedBluePuck = bluePucks[0];
-        }   
-        if (redPucks.Count > 0)
-        {
-            selectedRedPuck = redPucks[0];
-        }
+
+        // Nos aseguramos de que al empezar NO haya ninguna ficha seleccionada
+        selectedBluePuck = null;
+        selectedRedPuck = null;
+
+        // Actualizamos la visualización (esto apagará todos los LineRenderers 
+        // porque las variables selected están en null)
         UpdateVisualSelection();
     }
 
