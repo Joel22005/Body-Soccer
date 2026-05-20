@@ -6,9 +6,9 @@ public class PlayerMovement : MonoBehaviour
     public int playerID;
 
     [Header("Kick Power")]
-    public float minKickForce = 5f;
-    public float maxKickForce = 25f;
-    public float maxKickDistance = 3f; // distancia = potencia maxima
+    public float minKickForce = 15f;
+    public float maxKickForce = 100f;
+    public float maxKickDistance = 20f; // distancia = potencia maxima
 
     [Header("Tracking Data")]
     public Quaternion q;
@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour
 
         float dist = toPlayer.magnitude;
         float t = Mathf.Clamp01(dist / maxKickDistance);
-        float force = Mathf.Lerp(minKickForce, maxKickForce, t);
+        float force = 2 * Mathf.Lerp(minKickForce, maxKickForce, t);
 
         Vector3 shootDir = (dist > 0.01f) ? -toPlayer.normalized : transform.forward;
 
