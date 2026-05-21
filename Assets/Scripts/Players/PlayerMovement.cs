@@ -20,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     // ------------------------------------------------------------------
     public void KickWithDistance()
     {
+        if (GameManager.Instance == null || !GameManager.Instance.gameStarted) return;
         string myTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
         if (GameManager.Instance == null || GameManager.Instance.currentTurnTeam != myTeam) return;
 

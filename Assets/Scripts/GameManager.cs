@@ -14,9 +14,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Image redGoalImage;
     [SerializeField] private float resetDelay = 2.5f;
     [SerializeField] private AudioClip goalSound;
-    private AudioSource audioSource;
     [SerializeField] private GameObject ball;
+    [SerializeField] private SpinWheel spinWheel;
+    private AudioSource audioSource;
     public string currentTurnTeam;
+    public bool gameStarted = false;
     public GameObject selectedBluePuck;
     public GameObject selectedRedPuck;
     private List<GameObject> bluePucks = new List<GameObject>();
@@ -36,16 +38,20 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        currentTurnTeam = (Random.value > 0.5f) ? "BlueTeam" : "RedTeam";
-        Debug.Log("Inici del partit! Comença: " + currentTurnTeam);
         SaveInitialTransforms();
         InitializePuckLists();
         UpdateScoreUI();
-        if (goalPanel != null)
-        {
-            goalPanel.SetActive(false);
-        }
+        if (goalPanel != null) goalPanel.SetActive(false);
         audioSource = gameObject.AddComponent<AudioSource>();
+        // Bloquejem el joc fins que la ruleta acabi
+        spinWheel.OnSpinComplete += (blueStarts) =>
+        {
+            currentTurnTeam = blueStarts ? "BlueTeam" : "RedTeam";
+            gameStarted = true;
+            Debug.Log("Inici del partit! Comença: " + currentTurnTeam);
+            UpdateVisualSelection();
+        };
+        spinWheel.StartSpin();
     }
 
     private void InitializePuckLists()
@@ -64,7 +70,7 @@ public class GameManager : MonoBehaviour
 
     public void OnPlayerCrouch(int playerID, Vector3 playerPosition)
     {
-        if (goalInProgress) return;
+        if (!gameStarted || goalInProgress) return;
         string playerTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
         if (playerTeam != currentTurnTeam) return;
 
