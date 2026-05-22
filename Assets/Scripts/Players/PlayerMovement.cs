@@ -18,6 +18,14 @@ public class PlayerMovement : MonoBehaviour
     // CHUTE: igual para tracking y teclado
     // Potencia y direccion basadas en distancia/posicion del jugador
     // ------------------------------------------------------------------
+    private void Start()
+    {
+        SpriteRenderer sr = GetComponentInChildren<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.color = (playerID == 1) ? Color.red : Color.blue;
+        }
+    }
     public void KickWithDistance()
     {
         if (GameManager.Instance == null || !GameManager.Instance.gameStarted) return;
