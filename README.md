@@ -17,6 +17,7 @@ At the beginning of each match, a visual spinning wheel determines which team st
 
 ### Turn System
 The game operates on a **strict turn-based system**, equivalent to chess or billiards.
+- Each player has 15 seconds to kick a puck
 - When the active player kicks, the turn automatically passes to the opponent
 - Only the active team can select and kick pucks
 - Visual indicators update instantly on each turn change
