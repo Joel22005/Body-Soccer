@@ -26,37 +26,38 @@ public class SpinWheel : MonoBehaviour
 
     private IEnumerator SpinRoutine()
     {
-        // Decidim el resultat ara (50/50 pur)
         bool blueStarts = Random.value > 0.5f;
 
-        // Calculem els graus totals per aturar-se al lloc correcte
-        float[] blueAngles = { 60f, 150f, 240f, 330f };
-        float[] redAngles = { 15f, 105f, 195f, 285f };
-        float[] targetAngles = blueStarts ? blueAngles : redAngles;
-        float extraDegrees = targetAngles[Random.Range(0, targetAngles.Length)];
-        float totalDegrees = (Random.Range(minSpins, maxSpins) * 360f) + extraDegrees;
+        // Sempre reiniciem a 0
+        wheelTransform.eulerAngles = Vector3.zero;
+
+        float totalSpins = Random.Range(minSpins, maxSpins);
+        // Truncem a enter per assegurar voltes completes
+        totalSpins = Mathf.Floor(totalSpins);
+
+        // Angle FIX per a cada color — sempre el mateix punt
+        float extraDegrees = blueStarts ? 0f : 45f;
+
+        float totalDegrees = (totalSpins * 360f) + extraDegrees;
 
         float elapsed = 0f;
-        float startRotation = wheelTransform.eulerAngles.z;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float easedT = EaseInOutCubic(elapsed / duration);
-            wheelTransform.eulerAngles = new Vector3(0f, 0f, startRotation + totalDegrees * easedT);
+            wheelTransform.eulerAngles = new Vector3(0f, 0f, totalDegrees * easedT);
             yield return null;
         }
 
-        // Assegurem la rotació final exacta
-        wheelTransform.eulerAngles = new Vector3(0f, 0f, startRotation + totalDegrees);
+        // Forcem la rotació final EXACTA
+        wheelTransform.eulerAngles = new Vector3(0f, 0f, extraDegrees);
 
-        // Mostrem el resultat
         resultText.gameObject.SetActive(true);
         resultText.text = blueStarts ? "Blue Starts" : "Red Starts";
         resultText.color = blueStarts ? Color.blue : Color.red;
 
         yield return new WaitForSeconds(2.5f);
-
         spinPanel.SetActive(false);
         OnSpinComplete?.Invoke(blueStarts);
     }
