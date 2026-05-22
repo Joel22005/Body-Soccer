@@ -43,7 +43,3 @@ The game operates on a **strict turn-based system**, equivalent to chess or bill
 - Each player is represented by a **football boot sprite**
 - Colored **red or blue** according to their team
 - Provides clear visual identification of each player's position on the field
-
-
-
-| Keyboard fallback (no tracking) | ✅ Working |
