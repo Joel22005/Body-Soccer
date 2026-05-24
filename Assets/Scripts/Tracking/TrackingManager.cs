@@ -202,6 +202,8 @@ public class TrackingManager : MonoBehaviour
                     {
                         //Calculates the calibrated position using the Calibration data
                         Vector3 calibratedPos = CalibrationUtils.CalibrateRawPos(playersRawPosition, enableYAxis, calibration, virtualWorldSpace);
+                        if (StartSceneManager.Instance != null)
+                            StartSceneManager.Instance.UpdatePlayerPosition(i + 1, calibratedPos);
                         players[i].GetComponent<PlayerMovement>().SetPosition(calibratedPos);
                         bool isCurrentlyCrouched = calibratedPos.y < crouchThreshold;
                         int playerID = players[i].GetComponent<PlayerMovement>().playerID;
@@ -209,43 +211,49 @@ public class TrackingManager : MonoBehaviour
                         // Acaba de agacharse → selecciona ficha más cercana
                         if (isCurrentlyCrouched && !playerWasCrouched[i])
                         {
-                            puckSelected[i] = true;
-                            GameManager.Instance.OnPlayerCrouch(playerID, calibratedPos);
-                            Debug.Log($"[Tracking] Jugador {playerID} selecciona ficha.");
+                            if (GameManager.Instance != null)
+                            {
+                                puckSelected[i] = true;
+                                GameManager.Instance.OnPlayerCrouch(playerID, calibratedPos);
+                                Debug.Log($"[Tracking] Jugador {playerID} selecciona ficha.");
+                            }
                         }
 
                         // Acaba de levantarse
                         if (!isCurrentlyCrouched && playerWasCrouched[i] && puckSelected[i])
                         {
-                            // Obtener la ficha seleccionada
-                            GameObject selectedPuck = (playerID == 1)
-                                ? GameManager.Instance.selectedRedPuck
-                                : GameManager.Instance.selectedBluePuck;
-
-                            bool insideSafeZone = false;
-
-                            if (selectedPuck != null)
+                            if (GameManager.Instance != null)
                             {
-                                // Comparar solo en XZ (ignorar altura Y)
-                                Vector2 playerXZ = new Vector2(calibratedPos.x, calibratedPos.z);
-                                Vector2 puckXZ = new Vector2(selectedPuck.transform.position.x,
-                                                               selectedPuck.transform.position.z);
-                                float dist = Vector2.Distance(playerXZ, puckXZ);
-                                insideSafeZone = dist <= safeZoneRadius;
-                            }
+                                // Obtener la ficha seleccionada
+                                GameObject selectedPuck = (playerID == 1)
+                                    ? GameManager.Instance.selectedRedPuck
+                                    : GameManager.Instance.selectedBluePuck;
 
-                            if (insideSafeZone)
-                            {
-                                // Dentro del círculo → deselecciona sin disparar
-                                puckSelected[i] = false;
-                                Debug.Log($"[Tracking] Jugador {playerID} deselecciona (zona segura).");
-                            }
-                            else
-                            {
-                                // Fuera del círculo → dispara
-                                players[i].GetComponent<PlayerMovement>().KickWithDistance();
-                                puckSelected[i] = false;
-                                Debug.Log($"[Tracking] Jugador {playerID} dispara.");
+                                bool insideSafeZone = false;
+
+                                if (selectedPuck != null)
+                                {
+                                    // Comparar solo en XZ (ignorar altura Y)
+                                    Vector2 playerXZ = new Vector2(calibratedPos.x, calibratedPos.z);
+                                    Vector2 puckXZ = new Vector2(selectedPuck.transform.position.x,
+                                                                   selectedPuck.transform.position.z);
+                                    float dist = Vector2.Distance(playerXZ, puckXZ);
+                                    insideSafeZone = dist <= safeZoneRadius;
+                                }
+
+                                if (insideSafeZone)
+                                {
+                                    // Dentro del círculo → deselecciona sin disparar
+                                    puckSelected[i] = false;
+                                    Debug.Log($"[Tracking] Jugador {playerID} deselecciona (zona segura).");
+                                }
+                                else
+                                {
+                                    // Fuera del círculo → dispara
+                                    players[i].GetComponent<PlayerMovement>().KickWithDistance();
+                                    puckSelected[i] = false;
+                                    Debug.Log($"[Tracking] Jugador {playerID} dispara.");
+                                }
                             }
                         }
 
@@ -362,7 +370,8 @@ public class TrackingManager : MonoBehaviour
         if (kb.fKey.wasPressedThisFrame)
         {
             int pid = player.GetComponent<PlayerMovement>().playerID;
-            GameManager.Instance.OnPlayerCrouch(pid, player.transform.position);
+            if (GameManager.Instance != null)
+                GameManager.Instance.OnPlayerCrouch(pid, player.transform.position);
         }
 
         // Chute con carga: mantener Space para cargar, soltar para chutar
