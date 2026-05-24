@@ -11,9 +11,7 @@ public class GameManager : MonoBehaviour
     [Header("UI & Score")]
     [SerializeField] private TMP_Text blueScoreText;
     [SerializeField] private TMP_Text redScoreText;
-    [SerializeField] private GameObject goalPanel;
-    [SerializeField] private Image blueGoalImage;
-    [SerializeField] private Image redGoalImage;
+    [SerializeField] private GoalAnimator goalAnimator;
 
     [Header("Game Elements")]
     [SerializeField] private GameObject ball;
@@ -69,7 +67,7 @@ public class GameManager : MonoBehaviour
         InitializePuckLists();
         UpdateScoreUI();
 
-        if (goalPanel != null) goalPanel.SetActive(false);
+        goalAnimator?.Hide();
         audioSource = gameObject.AddComponent<AudioSource>();
 
         // Estado inicial de los turnos (todo apagado esperando a la ruleta)
@@ -208,11 +206,9 @@ public class GameManager : MonoBehaviour
 
         if (goalSound) audioSource.PlayOneShot(goalSound);
 
-        if (goalPanel)
+        if (goalAnimator)
         {
-            goalPanel.SetActive(true);
-            blueGoalImage?.gameObject.SetActive(scoringTeam == "BlueTeam");
-            redGoalImage?.gameObject.SetActive(scoringTeam == "RedTeam");
+            goalAnimator?.Show(scoringTeam);
         }
 
         // --- COMPROBACIÓN DE CONDICIÓN DE VICTORIA ---
@@ -273,7 +269,7 @@ public class GameManager : MonoBehaviour
             rb.rotation = item.Value.rot;
         }
 
-        if (goalPanel != null) goalPanel.SetActive(false);
+        goalAnimator?.Hide();
 
         goalInProgress = false;
 
