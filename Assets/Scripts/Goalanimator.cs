@@ -25,7 +25,7 @@ public class GoalAnimator : MonoBehaviour
     [SerializeField] private Sprite[] blueFrames;
 
     [Header("Velocidad de entrada (frames rapidos)")]
-    [SerializeField] private float entryFrameRate = 0.08f;  // segundos entre frames de entrada
+    [SerializeField] private float entryFrameRate = 0.2f;  // segundos entre frames de entrada
     [SerializeField] private float holdDuration = 2.0f;   // tiempo que se queda en el ultimo frame
     [SerializeField] private float exitDuration = 0.4f;   // duracion del fade de salida
 
@@ -103,8 +103,8 @@ public class GoalAnimator : MonoBehaviour
             float t = (float)i / (frames.Length - 1);
             transform.localScale = Vector3.one * Mathf.Lerp(startScale, overshoot, t);
 
-            float wait = entryFrameRate * (1f + i * 0.3f); // cada frame tarda un poco mas
-            yield return new WaitForSeconds(wait);
+            // float wait = entryFrameRate * (1f + i * 0.3f); // cada frame tarda un poco mas
+            yield return new WaitForSeconds(entryFrameRate);
         }
 
         // --- FASE 2: ultimo frame con bounce ---
