@@ -46,10 +46,8 @@ public class StartSceneManager : MonoBehaviour
 
     private void Update()
     {
-        // Bloque añadido: Parte 1 - Probar sin tracking (con teclado)
-#if UNITY_EDITOR
+        // Controles de teclado activos siempre, tanto en Editor como en Build
         UpdateDebugKeyboard();
-#endif
 
         if (loading) return;
 
@@ -78,13 +76,11 @@ public class StartSceneManager : MonoBehaviour
             loading = true;
             StartCoroutine(LoadGame());
         }
-
     }
 
-    // --- NUEVOS MÉTODOS AÑADIDOS DEL TUTORIAL ---
+    // --- MÉTODOS ---
 
-    // Bloque añadido: Parte 1 - Simulación de teclado
-#if UNITY_EDITOR
+    // Este método ahora se ejecutará siempre (sin la restricción #if UNITY_EDITOR)
     private void UpdateDebugKeyboard()
     {
         float speed = 2f * Time.deltaTime;
@@ -101,9 +97,8 @@ public class StartSceneManager : MonoBehaviour
         if (Input.GetKey(KeyCode.W)) player2Position.z += speed;
         if (Input.GetKey(KeyCode.S)) player2Position.z -= speed;
     }
-#endif
 
-    // Bloque añadido: Parte 2 - Ver zonas visualmente en Editor (Gizmos)
+    // Ver zonas visualmente en Editor (Gizmos)
     private void OnDrawGizmos()
     {
         // Zona roja
@@ -122,8 +117,6 @@ public class StartSceneManager : MonoBehaviour
         Gizmos.color = Color.green;
         Gizmos.DrawSphere(player2Position, 0.2f);
     }
-
-    // ---------------------------------------------
 
     private bool IsInside(Vector3 playerPos, Vector3 center, float radius)
     {
