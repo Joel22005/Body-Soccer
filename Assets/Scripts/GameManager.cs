@@ -15,7 +15,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Elements")]
     [SerializeField] private GameObject ball;
-    [SerializeField] private SpinWheel spinWheel; // ¡Ruleta restaurada!
+    [SerializeField] private SpinWheel spinWheel;
     [SerializeField] private float resetDelay = 2.5f;
     [SerializeField] private AudioClip goalSound;
     private AudioSource audioSource;
@@ -28,16 +28,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float stillThreshold = 0.05f;
     [SerializeField] private float stillRequiredTime = 0.5f;
 
-
     [Header("Game Over Settings")]
-    [SerializeField] private int maxGoals = 3; // Límite de goles para ganar
-
-
+    [SerializeField] private int maxGoals = 3;
 
     // Variables de estado del juego
-    private bool gameEnded = false;            // Controla si el partido ha terminado
+    private bool gameEnded = false;
     public string currentTurnTeam;
-    public bool gameStarted = false; // Controla si la ruleta ya terminó
+    public bool gameStarted = false;
     public GameObject selectedBluePuck;
     public GameObject selectedRedPuck;
 
@@ -70,27 +67,27 @@ public class GameManager : MonoBehaviour
         goalAnimator?.Hide();
         audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Estado inicial de los turnos (todo apagado esperando a la ruleta)
         selectedBluePuck = null;
         selectedRedPuck = null;
         turnActive = false;
-        waitingForStill = false; // Aún no esperamos movimiento, esperamos a la ruleta
+        waitingForStill = false;
         if (timerText != null) timerText.text = "...";
 
-        // MERGE: Lanzamos la ruleta como en el código original
-        spinWheel.OnSpinComplete += (blueStarts) =>
+        // Dejamos configurado qué pasa cuando la ruleta termine
+        if (spinWheel != null)
         {
-            currentTurnTeam = blueStarts ? "BlueTeam" : "RedTeam";
-            gameStarted = true;
-            Debug.Log("Inici del partit! Comença: " + currentTurnTeam);
-            UpdateVisualSelection();
+            spinWheel.OnSpinComplete += (blueStarts) =>
+            {
+                currentTurnTeam = blueStarts ? "BlueTeam" : "RedTeam";
+                gameStarted = true;
+                Debug.Log("Inici del partit! Comença: " + currentTurnTeam);
+                UpdateVisualSelection();
 
-            // MERGE: Una vez la ruleta acaba, AHORA activamos tu nueva lógica de quietud
-            waitingForStill = true;
-            stillTimer = 0f;
-        };
-
-        spinWheel.StartSpin();
+                waitingForStill = true;
+                stillTimer = 0f;
+            };
+        }
+        // ATENCIÓN: Ya no hacemos spinWheel.StartSpin() aquí. Lo hará el MatchFlowManager al llamar a StartMatch()
     }
 
     private void InitializePuckLists()
@@ -98,7 +95,6 @@ public class GameManager : MonoBehaviour
         bluePucks.AddRange(GameObject.FindGameObjectsWithTag("BlueTeam"));
         redPucks.AddRange(GameObject.FindGameObjectsWithTag("RedTeam"));
 
-        // Nos aseguramos de que al empezar NO haya ninguna ficha seleccionada
         selectedBluePuck = null;
         selectedRedPuck = null;
         UpdateVisualSelection();
@@ -106,7 +102,6 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        // MERGE: Si la ruleta está girando (gameStarted es false), no hacemos nada con el tiempo
         if (gameEnded || !gameStarted || goalInProgress) return;
 
         if (waitingForStill)
@@ -122,7 +117,7 @@ public class GameManager : MonoBehaviour
             }
             else
             {
-                stillTimer = 0f; // resetea si algo se mueve
+                stillTimer = 0f;
             }
         }
 
@@ -135,7 +130,6 @@ public class GameManager : MonoBehaviour
 
             if (turnTimeRemaining <= 0f)
             {
-                // Tiempo agotado → cambiar turno automáticamente
                 Debug.Log("[GameManager] Finished Time. Turn change");
                 turnActive = false;
                 SwitchTurn();
@@ -145,9 +139,8 @@ public class GameManager : MonoBehaviour
 
     public void OnPlayerCrouch(int playerID, Vector3 playerPosition)
     {
-        // MERGE: Combinamos la protección de la ruleta y la de tu temporizador
         if (!gameStarted || goalInProgress) return;
-        if (!turnActive) return; // bloquea si hay movimiento
+        if (!turnActive) return;
 
         string playerTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
         if (playerTeam != currentTurnTeam) return;
@@ -155,7 +148,6 @@ public class GameManager : MonoBehaviour
         List<GameObject> myPucks = (playerID == 1) ? redPucks : bluePucks;
         if (myPucks.Count == 0) return;
 
-        // Seleccionar la ficha más cercana a la posicion del jugador
         GameObject closest = null;
         float minDist = float.MaxValue;
         foreach (GameObject puck in myPucks)
@@ -189,7 +181,7 @@ public class GameManager : MonoBehaviour
         if (goalInProgress || gameEnded) return;
 
         goalInProgress = true;
-        turnActive = false; // Pausamos el tiempo inmediatamente
+        turnActive = false;
 
         if (scoringTeam == "BlueTeam")
         {
@@ -211,14 +203,12 @@ public class GameManager : MonoBehaviour
             goalAnimator?.Show(scoringTeam);
         }
 
-        // --- COMPROBACIÓN DE CONDICIÓN DE VICTORIA ---
         if (blueScore >= maxGoals || redScore >= maxGoals)
         {
             EndGame(scoringTeam);
         }
         else
         {
-            // Si nadie ha llegado a 3, el partido se reinicia normalmente
             StartCoroutine(ResetMatchAfterDelay());
         }
     }
@@ -228,21 +218,87 @@ public class GameManager : MonoBehaviour
         gameEnded = true;
         turnActive = false;
         waitingForStill = false;
-        gameStarted = false; // Bloquea futuros inputs de tracking
+        gameStarted = false;
 
-        // Traducimos el nombre interno al texto que verá el usuario
         string winnerName = (winningTeam == "BlueTeam") ? "EQUIPO AZUL" : "EQUIPO ROJO";
         Debug.Log($"¡Fin del partido! El ganador es: {winnerName}");
 
-        // Mostramos el ganador en el texto del temporizador del marcador
         if (timerText != null)
         {
             timerText.text = "WIN!";
         }
 
-        // Opcional: Aquí podrías activar un panel específico de "Game Over" si lo tienes,
-        // o dejar el panel de GOAL en pantalla permanentemente.
+        // --- CONEXIÓN CON MATCHFLOWMANAGER ---
+        if (MatchFlowManager.Instance != null)
+        {
+            MatchFlowManager.Instance.EnterGameOver();
+        }
     }
+
+    // --- NUEVOS MÉTODOS AÑADIDOS DE LA GUÍA ---
+
+    public void StartMatch()
+    {
+        blueScore = 0;
+        redScore = 0;
+        goalInProgress = false;
+        gameEnded = false;
+        UpdateScoreUI();
+        selectedBluePuck = null;
+        selectedRedPuck = null;
+        turnActive = false;
+
+        if (timerText != null) timerText.text = "...";
+
+        // Lanzamos tu ruleta
+        if (spinWheel != null)
+        {
+            spinWheel.StartSpin();
+            Debug.Log("[GameManager] Partido iniciado. Girando ruleta...");
+        }
+        else
+        {
+            // Por si acaso la ruleta se desconecta
+            currentTurnTeam = (Random.value > 0.5f) ? "BlueTeam" : "RedTeam";
+            gameStarted = true;
+            waitingForStill = true;
+            stillTimer = 0f;
+            Debug.Log("[GameManager] Partido iniciado sin ruleta.");
+        }
+    }
+
+    public void FullReset()
+    {
+        blueScore = 0;
+        redScore = 0;
+        goalInProgress = false;
+        gameStarted = false;
+        gameEnded = false;
+        turnActive = false;
+        waitingForStill = false;
+        selectedBluePuck = null;
+        selectedRedPuck = null;
+
+        foreach (var item in initialTransforms)
+        {
+            Rigidbody rb = item.Key;
+            if (rb == null) continue;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.position = item.Value.pos;
+            rb.rotation = item.Value.rot;
+        }
+
+        UpdateScoreUI();
+        UpdateVisualSelection();
+
+        if (timerText != null) timerText.text = "";
+        goalAnimator?.Hide();
+
+        Debug.Log("[GameManager] Reset completo.");
+    }
+
+    // ------------------------------------------
 
     private void SaveInitialTransforms()
     {
@@ -270,10 +326,8 @@ public class GameManager : MonoBehaviour
         }
 
         goalAnimator?.Hide();
-
         goalInProgress = false;
 
-        // Deseleccionar y esperar quietud para sacar del centro
         selectedBluePuck = null;
         selectedRedPuck = null;
         UpdateVisualSelection();
@@ -296,12 +350,10 @@ public class GameManager : MonoBehaviour
         currentTurnTeam = (currentTurnTeam == "BlueTeam") ? "RedTeam" : "BlueTeam";
         Debug.Log("Turn changed for: " + currentTurnTeam);
 
-        // Deseleccionar fichas (Funcionalidad nueva añadida)
         selectedBluePuck = null;
         selectedRedPuck = null;
         UpdateVisualSelection();
 
-        // Esperar a que todo esté quieto antes de empezar el turno
         turnActive = false;
         waitingForStill = true;
         stillTimer = 0f;
@@ -323,10 +375,8 @@ public class GameManager : MonoBehaviour
             Rigidbody rb = pair.Key;
             if (rb == null) continue;
 
-            // LA MAGIA: Si el objeto es el balón, lo ignoramos y pasamos al siguiente
             if (ball != null && rb.gameObject == ball) continue;
 
-            // Evaluamos velocidad lineal y angular SOLO de las chapas
             if (rb.linearVelocity.magnitude > stillThreshold) return false;
             if (rb.angularVelocity.magnitude > stillThreshold) return false;
         }

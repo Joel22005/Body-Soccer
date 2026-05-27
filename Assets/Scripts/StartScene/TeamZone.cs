@@ -1,18 +1,16 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
 
 public class TeamZone : MonoBehaviour
 {
     [Header("Config")]
-    public string teamName;           // "RedTeam" o "BlueTeam"
-    public float zoneRadius = 1.5f;   // radio detección en coords virtuales
-    public float fillSpeed = 0.4f;    // velocidad llenado (1/fillSpeed = segundos)
+    public string teamName;
+    public float zoneRadius = 1.5f;
+    public float fillSpeed = 0.4f;
 
-    [Header("UI")]
-    public Image loadingRing;         // arrastra el LoadingRing aquí
-
-    [Header("Visual Feedback")]
-    public Image puckGlow;            // imagen de glow detrás de la ficha (opcional)
+    [Header("UI References")]
+    public Image loadingRing;
+    public Image puckGlow;
 
     [HideInInspector] public bool isReady = false;
 
@@ -29,15 +27,13 @@ public class TeamZone : MonoBehaviour
         fillAmount = Mathf.Clamp01(fillAmount);
         isReady = fillAmount >= 1f;
 
-        // Actualizar UI
         if (loadingRing != null)
             loadingRing.fillAmount = fillAmount;
 
-        // Glow proporcional al llenado
         if (puckGlow != null)
         {
             Color c = puckGlow.color;
-            c.a = fillAmount * 0.6f;
+            c.a = fillAmount * 0.7f;
             puckGlow.color = c;
         }
     }
@@ -47,7 +43,7 @@ public class TeamZone : MonoBehaviour
         playerInside = inside;
     }
 
-    public void Reset()
+    public void ResetZone()
     {
         fillAmount = 0f;
         isReady = false;

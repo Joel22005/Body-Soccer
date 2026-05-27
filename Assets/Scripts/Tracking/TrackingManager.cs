@@ -52,7 +52,7 @@ public class TrackingManager : MonoBehaviour
     [Header("Non-tracking")]
     [SerializeField] private int playerSelected = 0;
     [SerializeField] private int trackingDisabledPlayerSpeed = 5;
-    [SerializeField] private float trackingDisabledRotSpeed = 90f; // <-- añade esta línea
+    [SerializeField] private float trackingDisabledRotSpeed = 90f;
 
 
     private int playerRotDatatSize = 7;
@@ -202,8 +202,12 @@ public class TrackingManager : MonoBehaviour
                     {
                         //Calculates the calibrated position using the Calibration data
                         Vector3 calibratedPos = CalibrationUtils.CalibrateRawPos(playersRawPosition, enableYAxis, calibration, virtualWorldSpace);
-                        if (StartSceneManager.Instance != null)
-                            StartSceneManager.Instance.UpdatePlayerPosition(i + 1, calibratedPos);
+
+                        // --- ACTUALIZADO PARA MATCHFLOWMANAGER ---
+                        if (MatchFlowManager.Instance != null)
+                            MatchFlowManager.Instance.UpdatePlayerPosition(i + 1, calibratedPos);
+                        // -----------------------------------------
+
                         players[i].GetComponent<PlayerMovement>().SetPosition(calibratedPos);
                         bool isCurrentlyCrouched = calibratedPos.y < crouchThreshold;
                         int playerID = players[i].GetComponent<PlayerMovement>().playerID;
