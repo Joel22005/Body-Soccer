@@ -9,6 +9,8 @@ TagManager:
   - BlueTeam
   - RedTeam
   - Ball
+  - Wall
+  - Post
   layers:
   - Default
   - TransparentFX
