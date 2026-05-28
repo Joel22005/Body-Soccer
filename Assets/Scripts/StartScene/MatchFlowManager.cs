@@ -16,8 +16,8 @@ public class MatchFlowManager : MonoBehaviour
     public GameObject startMenuCanvas;
     public TeamZone redZone;
     public TeamZone blueZone;
-    public GameObject statusPromptImage; // 'hoverovertheteam'
-    public GameObject startGameImage;    // <-- AÑADIDO: Tu imagen 'startgame'
+    public GameObject statusPromptImage;
+    public GameObject startGameImage;
     public Image fadePanel;
 
     [Header("Zone Centers (tracking virtual coords)")]
@@ -33,10 +33,6 @@ public class MatchFlowManager : MonoBehaviour
     // ─── Config ──────────────────────────────────────────────────────
     [Header("Match Config")]
     public float transitionDuration = 1f;
-
-    // ─── Posiciones jugadores (actualizadas por TrackingManager) ─────
-    [HideInInspector] public Vector3 player1Position;
-    [HideInInspector] public Vector3 player2Position;
 
     private bool transitioning = false;
 
@@ -58,7 +54,7 @@ public class MatchFlowManager : MonoBehaviour
         if (currentState == GameState.StartMenu)
             UpdateStartMenu();
 
-        // Controles de teclado activos siempre para poder probar en Build sin tracking
+        // Mueve las botas reales con el teclado para pruebas
         UpdateDebugKeyboard();
     }
 
@@ -68,7 +64,7 @@ public class MatchFlowManager : MonoBehaviour
 
         if (startMenuCanvas != null) startMenuCanvas.SetActive(true);
         if (statusPromptImage != null) statusPromptImage.SetActive(true);
-        if (startGameImage != null) startGameImage.SetActive(true); // <-- AÑADIDO: Mostrar al inicio
+        if (startGameImage != null) startGameImage.SetActive(true);
 
         SetGameplayActive(false);
 
@@ -82,17 +78,20 @@ public class MatchFlowManager : MonoBehaviour
 
     private void UpdateStartMenu()
     {
-        bool p1InRed = IsInside(player1Position, redZoneCenter, redZone.zoneRadius);
-        bool p2InBlue = IsInside(player2Position, blueZoneCenter, blueZone.zoneRadius);
+        // AHORA LEEMOS LA POSICIÓN REAL DE LAS BOTAS EN EL MUNDO 3D
+        Vector3 p1Pos = players.Count > 0 && players[0] != null ? players[0].transform.position : Vector3.zero;
+        Vector3 p2Pos = players.Count > 1 && players[1] != null ? players[1].transform.position : Vector3.zero;
+
+        bool p1InRed = IsInside(p1Pos, redZoneCenter, redZone.zoneRadius);
+        bool p2InBlue = IsInside(p2Pos, blueZoneCenter, blueZone.zoneRadius);
 
         redZone.SetPlayerInside(p1InRed);
         blueZone.SetPlayerInside(p2InBlue);
 
-        // Ocultar las imágenes si ambos están listos
         if (redZone.isReady && blueZone.isReady)
         {
             if (statusPromptImage != null) statusPromptImage.SetActive(false);
-            if (startGameImage != null) startGameImage.SetActive(false); // <-- AÑADIDO: Ocultar al empezar
+            if (startGameImage != null) startGameImage.SetActive(false);
             StartCoroutine(TransitionToGameplay());
         }
     }
@@ -134,7 +133,6 @@ public class MatchFlowManager : MonoBehaviour
 
     private void SetGameplayActive(bool active)
     {
-        // Activar/desactivar física de la pelota
         if (ball != null)
         {
             Rigidbody rb = ball.GetComponent<Rigidbody>();
@@ -142,26 +140,21 @@ public class MatchFlowManager : MonoBehaviour
             ball.SetActive(active);
         }
 
-        // Activar/desactivar todos los gráficos del campo de fútbol
         if (gameplayRoot != null)
         {
             gameplayRoot.SetActive(active);
         }
 
-        // Activar/desactivar movimiento de los jugadores
-        foreach (GameObject p in players)
-        {
-            if (p == null) continue;
-            PlayerMovement pm = p.GetComponent<PlayerMovement>();
-            if (pm != null) pm.enabled = active;
-        }
+        // ¡MAGIA AQUÍ! 
+        // Hemos eliminado el código que apagaba a los jugadores. 
+        // Las botas ahora siempre estarán visibles y funcionarán en el menú de inicio.
 
-        // Avisar al GameManager
         if (GameManager.Instance != null) GameManager.Instance.gameStarted = active;
     }
 
     private bool IsInside(Vector3 playerPos, Vector3 center, float radius)
     {
+        // Comprobamos si la bota real ha entrado en el círculo virtual
         Vector2 p = new Vector2(playerPos.x, playerPos.z);
         Vector2 c = new Vector2(center.x, center.z);
         return Vector2.Distance(p, c) <= radius;
@@ -200,36 +193,46 @@ public class MatchFlowManager : MonoBehaviour
 
     public void UpdatePlayerPosition(int playerID, Vector3 pos)
     {
-        if (playerID == 1) player1Position = pos;
-        else if (playerID == 2) player2Position = pos;
+        // Lo dejamos vacío para que el TrackingManager no dé error,
+        // pero ya no lo usamos porque leemos directamente la bota física.
     }
 
-    // Se ejecuta siempre (para testear sin tracking con teclado)
+    // AHORA ESTO MUEVE LAS BOTAS 3D REALES EN LUGAR DE UN PUNTO INVISIBLE
     private void UpdateDebugKeyboard()
     {
         if (currentState != GameState.StartMenu) return;
-        float speed = 2f * Time.deltaTime;
+        float speed = 15f * Time.deltaTime; // Velocidad ajustada para las botas
 
-        if (Input.GetKey(KeyCode.LeftArrow)) player1Position.x -= speed;
-        if (Input.GetKey(KeyCode.RightArrow)) player1Position.x += speed;
-        if (Input.GetKey(KeyCode.UpArrow)) player1Position.z += speed;
-        if (Input.GetKey(KeyCode.DownArrow)) player1Position.z -= speed;
+        if (players.Count >= 2)
+        {
+            if (players[0] != null) // Jugador 1 (Rojo)
+            {
+                Vector3 move1 = Vector3.zero;
+                if (Input.GetKey(KeyCode.LeftArrow)) move1.x -= speed;
+                if (Input.GetKey(KeyCode.RightArrow)) move1.x += speed;
+                if (Input.GetKey(KeyCode.UpArrow)) move1.z += speed;
+                if (Input.GetKey(KeyCode.DownArrow)) move1.z -= speed;
+                players[0].transform.Translate(move1, Space.World);
+            }
 
-        if (Input.GetKey(KeyCode.A)) player2Position.x -= speed;
-        if (Input.GetKey(KeyCode.D)) player2Position.x += speed;
-        if (Input.GetKey(KeyCode.W)) player2Position.z += speed;
-        if (Input.GetKey(KeyCode.S)) player2Position.z -= speed;
+            if (players[1] != null) // Jugador 2 (Azul)
+            {
+                Vector3 move2 = Vector3.zero;
+                if (Input.GetKey(KeyCode.A)) move2.x -= speed;
+                if (Input.GetKey(KeyCode.D)) move2.x += speed;
+                if (Input.GetKey(KeyCode.W)) move2.z += speed;
+                if (Input.GetKey(KeyCode.S)) move2.z -= speed;
+                players[1].transform.Translate(move2, Space.World);
+            }
+        }
     }
 
     private void OnDrawGizmos()
     {
+        // Mostramos las zonas virtuales, pero ya NO dibujamos las bolitas amarillas/verdes
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(redZoneCenter, redZone != null ? redZone.zoneRadius : 1.5f);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(blueZoneCenter, blueZone != null ? blueZone.zoneRadius : 1.5f);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(player1Position, 0.2f);
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(player2Position, 0.2f);
     }
 }

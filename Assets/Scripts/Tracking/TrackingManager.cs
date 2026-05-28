@@ -350,6 +350,7 @@ public class TrackingManager : MonoBehaviour
     {
         if (players == null || players.Count == 0) return;
         if (playerSelected < 1 || playerSelected > players.Count) return;
+
         GameObject player = players[playerSelected - 1];
         if (player == null || !player.activeSelf) return;
 
@@ -370,17 +371,29 @@ public class TrackingManager : MonoBehaviour
         if (kb.eKey.isPressed)
             player.transform.Rotate(Vector3.up, 90f * Time.deltaTime);
 
+        // Obtenemos el componente de forma segura
+        PlayerMovement pm = player.GetComponent<PlayerMovement>();
+
         // Cambiar ficha con F
         if (kb.fKey.wasPressedThisFrame)
         {
-            int pid = player.GetComponent<PlayerMovement>().playerID;
+            if (pm == null)
+            {
+                Debug.LogError($"[ERROR CRÍTICO] La bota '{player.name}' NO tiene el script 'PlayerMovement'. El juego no puede saber de qué equipo es.");
+                return; // Bloquea la acción en lugar de crashear
+            }
+
             if (GameManager.Instance != null)
-                GameManager.Instance.OnPlayerCrouch(pid, player.transform.position);
+            {
+                GameManager.Instance.OnPlayerCrouch(pm.playerID, player.transform.position);
+            }
         }
 
         // Chute con carga: mantener Space para cargar, soltar para chutar
-        PlayerMovement pm = player.GetComponent<PlayerMovement>();
-        if (kb.spaceKey.wasPressedThisFrame) pm.KickWithDistance();
+        if (kb.spaceKey.wasPressedThisFrame)
+        {
+            if (pm != null) pm.KickWithDistance();
+        }
     }
 
     /// <summary>
