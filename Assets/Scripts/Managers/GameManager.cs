@@ -91,6 +91,7 @@ public class GameManager : MonoBehaviour
     {
         bluePucks.AddRange(GameObject.FindGameObjectsWithTag("BlueTeam"));
         redPucks.AddRange(GameObject.FindGameObjectsWithTag("RedTeam"));
+        Debug.Log($"[InitializePuckLists] RedPucks:{redPucks.Count} BluePucks:{bluePucks.Count}");
 
         selectedBluePuck = null;
         selectedRedPuck = null;
@@ -136,13 +137,19 @@ public class GameManager : MonoBehaviour
 
     public void OnPlayerCrouch(int playerID, Vector3 playerPosition)
     {
+        Debug.Log($"[OnPlayerCrouch] gameStarted:{gameStarted} goalInProgress:{goalInProgress} turnActive:{turnActive} currentTurn:{currentTurnTeam}");
+
         if (!gameStarted || goalInProgress) return;
         if (!turnActive) return;
 
         string playerTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
+        Debug.Log($"[OnPlayerCrouch] playerID:{playerID} playerTeam:{playerTeam}");
+
         if (playerTeam != currentTurnTeam) return;
 
         List<GameObject> myPucks = (playerID == 1) ? redPucks : bluePucks;
+        Debug.Log($"[OnPlayerCrouch] myPucks count:{myPucks.Count}");
+
         if (myPucks.Count == 0) return;
 
         GameObject closest = null;
@@ -240,6 +247,11 @@ public class GameManager : MonoBehaviour
         redScore = 0;
         goalInProgress = false;
         gameEnded = false;
+
+        bluePucks.Clear();
+        redPucks.Clear();
+        InitializePuckLists();
+
         UpdateScoreUI();
         selectedBluePuck = null;
         selectedRedPuck = null;
