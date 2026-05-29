@@ -23,6 +23,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float turnDuration = 15f;
 
     [Header("Movement Detection")]
+    [Tooltip("El script ahora fuerza este valor a 0.05 internamente para evitar bugs")]
     [SerializeField] private float stillThreshold = 0.05f;
     [SerializeField] private float stillRequiredTime = 0.5f;
 
@@ -61,14 +62,13 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        SaveInitialTransforms();
+        InitializePuckLists();
     }
 
     private void Start()
     {
-        SaveInitialTransforms();
-        InitializePuckLists();
         UpdateScoreUI();
-
         goalAnimator?.Hide();
 
         selectedBluePuck = null;
@@ -77,7 +77,6 @@ public class GameManager : MonoBehaviour
         waitingForStill = false;
         if (timerText != null) timerText.text = "...";
 
-        // Dejamos configurado qué pasa cuando la ruleta termine
         if (spinWheel != null)
         {
             spinWheel.OnSpinComplete += (blueStarts) =>
@@ -91,14 +90,14 @@ public class GameManager : MonoBehaviour
                 stillTimer = 0f;
             };
         }
-        // ATENCIÓN: Ya no hacemos spinWheel.StartSpin() aquí. Lo hará el MatchFlowManager al llamar a StartMatch()
     }
 
     private void InitializePuckLists()
     {
+        bluePucks.Clear();
+        redPucks.Clear();
         bluePucks.AddRange(GameObject.FindGameObjectsWithTag("BlueTeam"));
         redPucks.AddRange(GameObject.FindGameObjectsWithTag("RedTeam"));
-        Debug.Log($"[InitializePuckLists] RedPucks:{redPucks.Count} BluePucks:{bluePucks.Count}");
 
         selectedBluePuck = null;
         selectedRedPuck = null;
@@ -125,38 +124,38 @@ public class GameManager : MonoBehaviour
                 stillTimer = 0f;
             }
         }
-
-        if (turnActive)
+        else if (turnActive) // El jugador está jugando su turno
         {
-            turnTimeRemaining -= Time.deltaTime;
-
-            if (timerText != null)
-                timerText.text = Mathf.CeilToInt(turnTimeRemaining).ToString();
-
-            if (turnTimeRemaining <= 0f)
+            // Auto-detectar si el jugador ya ha chutado (si las fichas se mueven)
+            if (!EverythingIsStill())
             {
-                Debug.Log("[GameManager] Finished Time. Turn change");
-                turnActive = false;
-                SwitchTurn();
+                Debug.Log("[GameManager] ¡Chute detectado! Pasando a esperar a que las fichas se detengan...");
+                SwitchTurn(); // Cortamos el turno y pasamos a esperar
+            }
+            else
+            {
+                turnTimeRemaining -= Time.deltaTime;
+
+                if (timerText != null)
+                    timerText.text = Mathf.CeilToInt(turnTimeRemaining).ToString();
+
+                if (turnTimeRemaining <= 0f)
+                {
+                    Debug.Log("[GameManager] Finished Time. Turn change");
+                    SwitchTurn();
+                }
             }
         }
     }
 
     public void OnPlayerCrouch(int playerID, Vector3 playerPosition)
     {
-        Debug.Log($"[OnPlayerCrouch] gameStarted:{gameStarted} goalInProgress:{goalInProgress} turnActive:{turnActive} currentTurn:{currentTurnTeam}");
-
-        if (!gameStarted || goalInProgress) return;
-        if (!turnActive) return;
+        if (!gameStarted || goalInProgress || !turnActive) return;
 
         string playerTeam = (playerID == 1) ? "RedTeam" : "BlueTeam";
-        Debug.Log($"[OnPlayerCrouch] playerID:{playerID} playerTeam:{playerTeam}");
-
         if (playerTeam != currentTurnTeam) return;
 
         List<GameObject> myPucks = (playerID == 1) ? redPucks : bluePucks;
-        Debug.Log($"[OnPlayerCrouch] myPucks count:{myPucks.Count}");
-
         if (myPucks.Count == 0) return;
 
         GameObject closest = null;
@@ -209,10 +208,7 @@ public class GameManager : MonoBehaviour
         UpdateTurnLights();
         SoundManager.Instance?.PlayGoal();
 
-        if (goalAnimator)
-        {
-            goalAnimator?.Show(scoringTeam);
-        }
+        if (goalAnimator) goalAnimator?.Show(scoringTeam);
 
         if (blueScore >= maxGoals || redScore >= maxGoals)
         {
@@ -231,22 +227,11 @@ public class GameManager : MonoBehaviour
         waitingForStill = false;
         gameStarted = false;
 
-        string winnerName = (winningTeam == "BlueTeam") ? "EQUIPO AZUL" : "EQUIPO ROJO";
-        Debug.Log($"¡Fin del partido! El ganador es: {winnerName}");
+        if (timerText != null) timerText.text = "WIN!";
 
-        if (timerText != null)
-        {
-            timerText.text = "WIN!";
-        }
-
-        // --- CONEXIÓN CON MATCHFLOWMANAGER ---
         if (MatchFlowManager.Instance != null)
-        {
             MatchFlowManager.Instance.EnterGameOver();
-        }
     }
-
-    // --- NUEVOS MÉTODOS AÑADIDOS DE LA GUÍA ---
 
     public void StartMatch()
     {
@@ -266,20 +251,16 @@ public class GameManager : MonoBehaviour
 
         if (timerText != null) timerText.text = "...";
 
-        // Lanzamos tu ruleta
         if (spinWheel != null)
         {
             spinWheel.StartSpin();
-            Debug.Log("[GameManager] Partido iniciado. Girando ruleta...");
         }
         else
         {
-            // Por si acaso la ruleta se desconecta
             currentTurnTeam = (Random.value > 0.5f) ? "BlueTeam" : "RedTeam";
             gameStarted = true;
             waitingForStill = true;
             stillTimer = 0f;
-            Debug.Log("[GameManager] Partido iniciado sin ruleta.");
         }
     }
 
@@ -299,8 +280,12 @@ public class GameManager : MonoBehaviour
         {
             Rigidbody rb = item.Key;
             if (rb == null) continue;
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
             rb.position = item.Value.pos;
             rb.rotation = item.Value.rot;
         }
@@ -310,8 +295,6 @@ public class GameManager : MonoBehaviour
         UpdateTurnLights();
         if (timerText != null) timerText.text = "";
         goalAnimator?.Hide();
-
-        Debug.Log("[GameManager] Reset completo.");
     }
 
     private void UpdateTurnLights()
@@ -341,8 +324,11 @@ public class GameManager : MonoBehaviour
         foreach (var item in initialTransforms)
         {
             Rigidbody rb = item.Key;
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
             rb.position = item.Value.pos;
             rb.rotation = item.Value.rot;
         }
@@ -376,6 +362,7 @@ public class GameManager : MonoBehaviour
         selectedRedPuck = null;
         UpdateVisualSelection();
         UpdateTurnLights();
+
         turnActive = false;
         waitingForStill = true;
         stillTimer = 0f;
@@ -390,20 +377,42 @@ public class GameManager : MonoBehaviour
         Debug.Log($"[GameManager] Turn for {currentTurnTeam}. time: {turnDuration}s");
     }
 
+    // El comprobador blindado
     private bool EverythingIsStill()
     {
-        foreach (var pair in initialTransforms)
+        // Forzamos el límite a 0.05 por código (muy sensible) para no depender del Inspector
+        float thresholdSeguro = 0.05f;
+
+        foreach (GameObject puck in bluePucks)
         {
-            Rigidbody rb = pair.Key;
-            if (rb == null) continue;
-
-            if (ball != null && rb.gameObject == ball) continue;
-
-            if (rb.linearVelocity.magnitude > stillThreshold) return false;
-            if (rb.angularVelocity.magnitude > stillThreshold) return false;
+            if (puck == null) continue;
+            Rigidbody rb = puck.GetComponent<Rigidbody>();
+            // Si la velocidad lineal o la de giro es mayor que 0.05, significa que se está moviendo
+            if (rb != null && (rb.linearVelocity.magnitude > thresholdSeguro || rb.angularVelocity.magnitude > thresholdSeguro))
+                return false;
         }
+
+        foreach (GameObject puck in redPucks)
+        {
+            if (puck == null) continue;
+            Rigidbody rb = puck.GetComponent<Rigidbody>();
+            if (rb != null && (rb.linearVelocity.magnitude > thresholdSeguro || rb.angularVelocity.magnitude > thresholdSeguro))
+                return false;
+        }
+
         return true;
     }
 
     public bool IsTurnActive() => turnActive;
+
+
+    // Este método lo llamará el tracking cuando te levantes en la zona segura
+    public void DeselectPuck(int playerID)
+    {
+        if (playerID == 1) selectedRedPuck = null;
+        else selectedBluePuck = null;
+
+        UpdateVisualSelection();
+        Debug.Log($"[GameManager] Jugador {playerID} ha soltado la ficha para elegir otra.");
+    }
 }

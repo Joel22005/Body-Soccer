@@ -24,9 +24,6 @@ public class TrackingManager : MonoBehaviour
     [SerializeField] private int numberOfBaseStations;
     [SerializeField] private bool enableRotation;
     [SerializeField] private bool enableYAxis;
-    //[SerializeField] private bool swapXZ;
-    //[SerializeField] private bool invertX;
-    //[SerializeField] private bool invertZ;
     [Tooltip("Provided virtual world space is the size of the plane or surface that is seen as for height, as mush as one meter in the real world should match to")]
     [SerializeField] private Vector3 virtualWorldSpace;
 
@@ -54,7 +51,6 @@ public class TrackingManager : MonoBehaviour
     [SerializeField] private int trackingDisabledPlayerSpeed = 5;
     [SerializeField] private float trackingDisabledRotSpeed = 90f;
 
-
     private int playerRotDatatSize = 7;
     private float positionUpdateInterval = 0.01f;
     private bool isTrackingInitialized;
@@ -65,18 +61,15 @@ public class TrackingManager : MonoBehaviour
 
     [Header("Crouch Settings")]
     [SerializeField] private float crouchThreshold = 0.5f;
+    [Tooltip("Sube este valor en el Inspector si te cuesta deseleccionar la ficha (ej: 3 o 5)")]
     [SerializeField] private float safeZoneRadius = 0.5f; // radio del círculo seguro alrededor de la ficha
 
-
-    /// <summary>
-    /// Initialize the system.
-    /// </summary>
     private void Awake()
     {
         playerWasCrouched = new bool[8];
         crouchStartTime = new float[8];
         puckSelected = new bool[8];
-        // Validate dependencies
+
         if (calibrationUI == null)
         {
             Debug.LogError("Missing one or more dependencies. Assign required scripts in the Inspector.");
@@ -85,23 +78,17 @@ public class TrackingManager : MonoBehaviour
 
         trackingInterface.SetActive(isInterfaceActive);
 
-        // Start tracking if enabled
         if (enableTracking)
         {
             PluginConnector.StartTracking(numberOfPlayers, numberOfBaseStations);
             isTrackingInitialized = true;
 
-            // Set interface text for base station number and checks consistency
             int detectedBaseStations = PluginConnector.GetNumberOfBaseStations();
             if (detectedBaseStations == numberOfBaseStations)
-            {
                 calibrationUI.SetNumberOfBaseStations(detectedBaseStations);
-            }
             else
-            {
                 calibrationUI.SetNumberOfBaseStations("Discrepancy");
-            }
-            // Set interface text for player number and checks consistency
+
             int detectedPlayers = PluginConnector.GetNumberOfTrackers();
             if (detectedPlayers == numberOfPlayers)
             {
@@ -118,68 +105,48 @@ public class TrackingManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Loads the data from the json file if it exists
-    /// </summary>
     private void Start()
     {
-        //assign calibration save File
         if (string.IsNullOrEmpty(calibrationSaveFilePath))
-        {
             calibrationSaveFilePath = Application.persistentDataPath;
-        }
+
         fullCalibrationSaveFilePath = calibrationSaveFilePath + "/" + calibrationSaveFileName + ".json";
 
-        Debug.Log(fullCalibrationSaveFilePath);
-
-        //load calibration if saved
         LoadCalibrationJson();
 
-        //set visibility for number of playres
         for (int i = 0; i < players.Count; i++)
         {
-            if (i >= numberOfPlayers)
-            {
-                players[i].SetActive(false);
-            }
+            if (i >= numberOfPlayers) players[i].SetActive(false);
         }
 
-        //start getNewPositions loop when tracking enabled
-        if (enableTracking)
-        {
-            StartCoroutine(GetPositions());
-        }
+        if (enableTracking) StartCoroutine(GetPositions());
     }
 
-
-    /// <summary>
-    /// Load the calibration saved in the file and give feedback.
-    /// </summary>
     public void LoadCalibrationJson()
     {
         Debug.Log("Fetching file at: " + fullCalibrationSaveFilePath);
 
+        if (!File.Exists(fullCalibrationSaveFilePath))
+        {
+            Debug.LogWarning("[Tracking] No hay archivo de calibración. Esto es normal si no has calibrado las cámaras físicas.");
+            if (calibrationUI != null) calibrationUI.SetCalibrationFileStatus("No File Found");
+            return;
+        }
+
         try
         {
             calibration = CalibrationUtils.LoadCalibrationJson(fullCalibrationSaveFilePath);
-
             UpdateCalibrationUICalibrationData();
-
             calibrated = true;
-            calibrationUI.SetCalibrationFileStatus("Loaded Calibration!");
+            if (calibrationUI != null) calibrationUI.SetCalibrationFileStatus("Loaded Calibration!");
         }
         catch (Exception e)
         {
             Debug.LogError("Error loading calibration: " + e.Message);
-            Debug.LogError(e.StackTrace);
-
-            calibrationUI.SetCalibrationFileStatus("Calibration Failed!");
+            if (calibrationUI != null) calibrationUI.SetCalibrationFileStatus("Calibration Failed!");
         }
     }
 
-    /// <summary>
-    /// Updates the position and rotation of the players
-    /// </summary>
     private IEnumerator GetPositions()
     {
         for (; ; )
@@ -191,44 +158,39 @@ public class TrackingManager : MonoBehaviour
             {
                 int playerIndex = i * playerRotDatatSize;
 
-                // Get position from openvr array
                 if (openVrOutputArr.Length >= numberOfPlayers)
                 {
                     Vector3 playersRawPosition = new Vector3(openVrOutputArr[0 + playerIndex], openVrOutputArr[1 + playerIndex], openVrOutputArr[2 + playerIndex]);
-
                     Quaternion playerRotation = new Quaternion(openVrOutputArr[3 + playerIndex], openVrOutputArr[4 + playerIndex], openVrOutputArr[5 + playerIndex], openVrOutputArr[6 + playerIndex]);
 
                     if (calibrated)
                     {
-                        //Calculates the calibrated position using the Calibration data
                         Vector3 calibratedPos = CalibrationUtils.CalibrateRawPos(playersRawPosition, enableYAxis, calibration, virtualWorldSpace);
 
-                        // --- ACTUALIZADO PARA MATCHFLOWMANAGER ---
                         if (MatchFlowManager.Instance != null)
                             MatchFlowManager.Instance.UpdatePlayerPosition(i + 1, calibratedPos);
-                        // -----------------------------------------
 
                         players[i].GetComponent<PlayerMovement>().SetPosition(calibratedPos);
+
                         bool isCurrentlyCrouched = calibratedPos.y < crouchThreshold;
                         int playerID = players[i].GetComponent<PlayerMovement>().playerID;
 
-                        // Acaba de agacharse → selecciona ficha más cercana
+                        // SE AGACHA → Selecciona la ficha
                         if (isCurrentlyCrouched && !playerWasCrouched[i])
                         {
                             if (GameManager.Instance != null)
                             {
                                 puckSelected[i] = true;
                                 GameManager.Instance.OnPlayerCrouch(playerID, calibratedPos);
-                                Debug.Log($"[Tracking] Jugador {playerID} selecciona ficha.");
+                                Debug.Log($"[Tracking] Jugador {playerID} se agacha. Ficha enganchada.");
                             }
                         }
 
-                        // Acaba de levantarse
+                        // SE LEVANTA → Decide si Deselecciona o Chuta
                         if (!isCurrentlyCrouched && playerWasCrouched[i] && puckSelected[i])
                         {
                             if (GameManager.Instance != null)
                             {
-                                // Obtener la ficha seleccionada
                                 GameObject selectedPuck = (playerID == 1)
                                     ? GameManager.Instance.selectedRedPuck
                                     : GameManager.Instance.selectedBluePuck;
@@ -237,26 +199,28 @@ public class TrackingManager : MonoBehaviour
 
                                 if (selectedPuck != null)
                                 {
-                                    // Comparar solo en XZ (ignorar altura Y)
                                     Vector2 playerXZ = new Vector2(calibratedPos.x, calibratedPos.z);
-                                    Vector2 puckXZ = new Vector2(selectedPuck.transform.position.x,
-                                                                   selectedPuck.transform.position.z);
+                                    Vector2 puckXZ = new Vector2(selectedPuck.transform.position.x, selectedPuck.transform.position.z);
+
                                     float dist = Vector2.Distance(playerXZ, puckXZ);
                                     insideSafeZone = dist <= safeZoneRadius;
+
+                                    Debug.Log($"[Tracking] Jugador {playerID} se levanta. Distancia a ficha: {dist}. Umbral: {safeZoneRadius}. ¿Dentro?: {insideSafeZone}");
                                 }
 
                                 if (insideSafeZone)
                                 {
-                                    // Dentro del círculo → deselecciona sin disparar
+                                    // 1. Apaga el tracker
                                     puckSelected[i] = false;
-                                    Debug.Log($"[Tracking] Jugador {playerID} deselecciona (zona segura).");
+                                    // 2. Avisa al GameManager para que suelte la ficha físicamente
+                                    GameManager.Instance.DeselectPuck(playerID);
+                                    Debug.Log($"[Tracking] Jugador {playerID} deselecciona (dentro de la zona segura).");
                                 }
                                 else
                                 {
-                                    // Fuera del círculo → dispara
                                     players[i].GetComponent<PlayerMovement>().KickWithDistance();
                                     puckSelected[i] = false;
-                                    Debug.Log($"[Tracking] Jugador {playerID} dispara.");
+                                    Debug.Log($"[Tracking] Jugador {playerID} dispara (fuera de la zona segura).");
                                 }
                             }
                         }
@@ -266,7 +230,6 @@ public class TrackingManager : MonoBehaviour
 
                         if (enableRotation)
                         {
-                            //Calculates the calibrated rotation using the Calibration data
                             Quaternion calibratedPlayerRotation = CalibrationUtils.CalibratedRawRot(playerRotation, calibration);
                             players[i].GetComponent<PlayerMovement>().SetRotation(calibratedPlayerRotation);
                             calibrationUI.SetPlayerXRot(i, calibratedPlayerRotation);
@@ -283,53 +246,35 @@ public class TrackingManager : MonoBehaviour
                         }
                     }
                 }
-
             }
-
             yield return new WaitForSeconds(positionUpdateInterval);
         }
     }
 
-    /// <summary>
-    /// Handles user input during tracking and movement of the players when tracking not enabled
-    /// </summary>
     private void Update()
     {
         ListenToControls();
 
-        //if tracking is not enabled move players with keyboard
         if (!enableTracking)
         {
             DisabledTrackingPlayerSelector();
-
             DisabledTrackingPlayerMovement();
         }
     }
 
-    /// <summary>
-    /// Handles input for starting calibration, saving data, toggling the UI, or quit the application.
-    /// </summary>
     private void ListenToControls()
     {
         Keyboard kb = Keyboard.current;
-        if (kb == null) return; // No hay teclado detectado
+        if (kb == null) return;
 
-        // Toggle tracking interface
         if (kb.iKey.wasPressedThisFrame)
         {
             isInterfaceActive = !isInterfaceActive;
             trackingInterface.SetActive(isInterfaceActive);
         }
-
-        // Quit application
-        if (kb.escapeKey.wasPressedThisFrame)
-        {
-            Application.Quit();
-        }
+        if (kb.escapeKey.wasPressedThisFrame) Application.Quit();
     }
 
-
-    //select the player that will move when trackingDisabled (default player 1)
     private void DisabledTrackingPlayerSelector()
     {
         Keyboard kb = Keyboard.current;
@@ -338,14 +283,8 @@ public class TrackingManager : MonoBehaviour
         if (kb.digit1Key.wasPressedThisFrame) playerSelected = 1;
         if (kb.digit2Key.wasPressedThisFrame) playerSelected = 2;
         if (kb.digit3Key.wasPressedThisFrame) playerSelected = 3;
-        if (kb.digit4Key.wasPressedThisFrame) playerSelected = 4;
-        if (kb.digit5Key.wasPressedThisFrame) playerSelected = 5;
-        if (kb.digit6Key.wasPressedThisFrame) playerSelected = 6;
-        if (kb.digit7Key.wasPressedThisFrame) playerSelected = 7;
-        if (kb.digit8Key.wasPressedThisFrame) playerSelected = 8;
     }
 
-    //read inputs form keyboard and move player selected when tracking is diabled
     private void DisabledTrackingPlayerMovement()
     {
         if (players == null || players.Count == 0) return;
@@ -357,7 +296,6 @@ public class TrackingManager : MonoBehaviour
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
 
-        // Movimiento WASD
         Vector3 move = Vector3.zero;
         if (kb.wKey.isPressed) move += Vector3.forward;
         if (kb.sKey.isPressed) move += Vector3.back;
@@ -365,55 +303,31 @@ public class TrackingManager : MonoBehaviour
         if (kb.dKey.isPressed) move += Vector3.right;
         player.transform.Translate(move * Time.deltaTime * trackingDisabledPlayerSpeed, Space.World);
 
-        // Rotacion Q/E para apuntar
-        if (kb.qKey.isPressed)
-            player.transform.Rotate(Vector3.up, -90f * Time.deltaTime);
-        if (kb.eKey.isPressed)
-            player.transform.Rotate(Vector3.up, 90f * Time.deltaTime);
+        if (kb.qKey.isPressed) player.transform.Rotate(Vector3.up, -90f * Time.deltaTime);
+        if (kb.eKey.isPressed) player.transform.Rotate(Vector3.up, 90f * Time.deltaTime);
 
-        // Obtenemos el componente de forma segura
         PlayerMovement pm = player.GetComponent<PlayerMovement>();
 
-        // Cambiar ficha con F
         if (kb.fKey.wasPressedThisFrame)
         {
-            if (pm == null)
-            {
-                Debug.LogError($"[ERROR CRÍTICO] La bota '{player.name}' NO tiene el script 'PlayerMovement'. El juego no puede saber de qué equipo es.");
-                return; // Bloquea la acción en lugar de crashear
-            }
-
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.OnPlayerCrouch(pm.playerID, player.transform.position);
-            }
+            if (pm == null) return;
+            if (GameManager.Instance != null) GameManager.Instance.OnPlayerCrouch(pm.playerID, player.transform.position);
         }
 
-        // Chute con carga: mantener Space para cargar, soltar para chutar
         if (kb.spaceKey.wasPressedThisFrame)
         {
             if (pm != null) pm.KickWithDistance();
         }
     }
 
-    /// <summary>
-    /// Ensures tracking is properly disabled during script shutdown.
-    /// </summary>
     private void OnDisable()
     {
-        if (enableTracking)
-        {
-            if (isTrackingInitialized)
-                PluginConnector.StopTracking();
-        }
+        if (enableTracking && isTrackingInitialized)
+            PluginConnector.StopTracking();
     }
 
-    /// <summary>
-    /// Update the calibration center, physicalWorldSize and rotation offset showed in the UI with the calibration values.
-    /// </summary>
     private void UpdateCalibrationUICalibrationData()
     {
-
         calibrationUI.SetCenter(calibration.GetCalibrationCenter());
         calibrationUI.SetPhysicalWorldSize(calibration.GetCalibrationRealWorldSize());
         calibrationUI.SetRotationOffset(calibration.GetCalibrationRotation());
