@@ -8,7 +8,9 @@ public class SpinWheel : MonoBehaviour
     [Header("References")]
     [SerializeField] private GameObject spinPanel;
     [SerializeField] private RectTransform wheelTransform;
-    [SerializeField] private TextMeshProUGUI resultText;
+    [SerializeField] private Image resultImage;
+    [SerializeField] private Sprite blueStartsSprite;
+    [SerializeField] private Sprite redStartsSprite;
 
     [Header("Config")]
     [SerializeField] private float minSpins = 3f;
@@ -20,7 +22,7 @@ public class SpinWheel : MonoBehaviour
     public void StartSpin()
     {
         spinPanel.SetActive(true);
-        resultText.gameObject.SetActive(false);
+        resultImage.gameObject.SetActive(false);
         StartCoroutine(SpinRoutine());
     }
 
@@ -46,16 +48,15 @@ public class SpinWheel : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float easedT = EaseInOutCubic(elapsed / duration);
-            wheelTransform.eulerAngles = new Vector3(0f, 0f, totalDegrees * easedT);
+            wheelTransform.eulerAngles = new Vector3(0f, 0f, -(totalDegrees * easedT));
             yield return null;
         }
 
         // Forcem la rotació final EXACTA
-        wheelTransform.eulerAngles = new Vector3(0f, 0f, extraDegrees);
+        wheelTransform.eulerAngles = new Vector3(0f, 0f, -extraDegrees);
 
-        resultText.gameObject.SetActive(true);
-        resultText.text = blueStarts ? "Blue Starts" : "Red Starts";
-        resultText.color = blueStarts ? Color.blue : Color.red;
+        resultImage.sprite = blueStarts ? blueStartsSprite : redStartsSprite;
+        resultImage.gameObject.SetActive(true);
 
         yield return new WaitForSeconds(2.5f);
         spinPanel.SetActive(false);
