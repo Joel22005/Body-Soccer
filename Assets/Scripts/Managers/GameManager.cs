@@ -29,6 +29,13 @@ public class GameManager : MonoBehaviour
     [Header("Game Over Settings")]
     [SerializeField] private int maxGoals = 3;
 
+    [Header("Turn Lights")]
+    [SerializeField] private Image blueLedUI;
+    [SerializeField] private Image redLedUI;
+    [SerializeField] private Color blueOnColor = Color.blue;
+    [SerializeField] private Color redOnColor = Color.red;
+    [SerializeField] private Color offColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+
     // Variables de estado del juego
     private bool gameEnded = false;
     public string currentTurnTeam;
@@ -79,7 +86,7 @@ public class GameManager : MonoBehaviour
                 gameStarted = true;
                 Debug.Log("Inici del partit! Comença: " + currentTurnTeam);
                 UpdateVisualSelection();
-
+                UpdateTurnLights();
                 waitingForStill = true;
                 stillTimer = 0f;
             };
@@ -199,7 +206,7 @@ public class GameManager : MonoBehaviour
         }
 
         UpdateScoreUI();
-
+        UpdateTurnLights();
         SoundManager.Instance?.PlayGoal();
 
         if (goalAnimator)
@@ -300,14 +307,20 @@ public class GameManager : MonoBehaviour
 
         UpdateScoreUI();
         UpdateVisualSelection();
-
+        UpdateTurnLights();
         if (timerText != null) timerText.text = "";
         goalAnimator?.Hide();
 
         Debug.Log("[GameManager] Reset completo.");
     }
 
-    // ------------------------------------------
+    private void UpdateTurnLights()
+    {
+        if (blueLedUI != null)
+            blueLedUI.color = (currentTurnTeam == "BlueTeam") ? blueOnColor : offColor;
+        if (redLedUI != null)
+            redLedUI.color = (currentTurnTeam == "RedTeam") ? redOnColor : offColor;
+    }
 
     private void SaveInitialTransforms()
     {
@@ -362,7 +375,7 @@ public class GameManager : MonoBehaviour
         selectedBluePuck = null;
         selectedRedPuck = null;
         UpdateVisualSelection();
-
+        UpdateTurnLights();
         turnActive = false;
         waitingForStill = true;
         stillTimer = 0f;
