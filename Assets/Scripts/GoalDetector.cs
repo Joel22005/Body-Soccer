@@ -1,35 +1,31 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// Place this script on an invisible Trigger collider positioned INSIDE each goal mouth.
-///
-/// Setup per goal:
-///   1. Create an empty child GameObject inside the Goal object (e.g. "GoalTrigger_Blue").
-///   2. Add a BoxCollider, enable "Is Trigger".
-///   3. Size/position the collider to cover the goal opening.
-///   4. Attach this script and set scoringTeam accordingly:
-///        - Goal of BLUE team  → scoringTeam = "RedTeam"  (red scores when ball enters blue's goal)
-///        - Goal of RED team   → scoringTeam = "BlueTeam"
+/// Detecta cuando la pelota entra en la portería.
+/// Solo registra el gol si el partido está activo (gameStarted = true)
+/// y no hay ya un gol en proceso (goalInProgress = false).
+/// Esto evita falsos goles durante transiciones y reinicios.
 /// </summary>
 public class GoalDetector : MonoBehaviour
 {
-    [Tooltip("Which team SCORES when the ball enters this goal.\n" +
-             "Blue goal  → RedTeam\n" +
-             "Red goal   → BlueTeam")]
+    [Tooltip("Equipo que ANOTA cuando la pelota entra aqui.\n" +
+             "Porteria azul → RedTeam\n" +
+             "Porteria roja → BlueTeam")]
     [SerializeField] private string scoringTeam = "BlueTeam";
 
-    [Tooltip("Tag on the ball object (default: 'Ball')")]
+    [Tooltip("Tag de la pelota (por defecto: 'Ball')")]
     [SerializeField] private string ballTag = "Ball";
 
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(ballTag)) return;
+        if (GameManager.Instance == null) return;
 
-        Debug.Log($"[GoalDetector] Ball entered goal. Scoring team: {scoringTeam}");
+        // Ignorar si el partido no ha empezado o ya hay un gol en proceso
+        if (!GameManager.Instance.gameStarted) return;
+        if (GameManager.Instance.GoalInProgress) return;
 
-        if (GameManager.Instance != null)
-            GameManager.Instance.GoalScored(scoringTeam);
-        else
-            Debug.LogWarning("[GoalDetector] GameManager instance not found in the scene!");
+        Debug.Log($"[GoalDetector] Gol! Equipo anotador: {scoringTeam}");
+        GameManager.Instance.GoalScored(scoringTeam);
     }
 }

@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text blueScoreText;
     [SerializeField] private TMP_Text redScoreText;
     [SerializeField] private GoalAnimator goalAnimator;
+    [SerializeField] private VictoryAnimator victoryAnimator;
 
     [Header("Game Elements")]
     [SerializeField] private GameObject ball;
@@ -49,6 +50,7 @@ public class GameManager : MonoBehaviour
     private int blueScore = 0;
     private int redScore = 0;
     private bool goalInProgress = false;
+    public bool GoalInProgress => goalInProgress;
 
     // Variables de tiempo y movimiento
     private float turnTimeRemaining;
@@ -70,6 +72,8 @@ public class GameManager : MonoBehaviour
     {
         UpdateScoreUI();
         goalAnimator?.Hide();
+        if (victoryAnimator != null)
+            victoryAnimator.OnAnimationComplete += OnVictoryAnimationComplete;
 
         selectedBluePuck = null;
         selectedRedPuck = null;
@@ -210,9 +214,16 @@ public class GameManager : MonoBehaviour
 
         if (goalAnimator) goalAnimator?.Show(scoringTeam);
 
-        if (blueScore >= maxGoals || redScore >= maxGoals)
+        bool isWinningGoal = blueScore >= maxGoals || redScore >= maxGoals;
+
+        if (isWinningGoal)
         {
-            EndGame(scoringTeam);
+            // Tanto decisivo: mostrar animacion de victoria en vez de gol
+            goalAnimator?.Hide();
+            if (victoryAnimator != null)
+                victoryAnimator.Show(scoringTeam);
+            else
+                EndGame(scoringTeam); // fallback si no hay animador
         }
         else
         {
@@ -416,6 +427,13 @@ public class GameManager : MonoBehaviour
     }
 
     public bool IsTurnActive() => turnActive;
+
+    private void OnVictoryAnimationComplete()
+    {
+        // La animacion de victoria ha terminado, iniciar transicion
+        string winner = (blueScore >= maxGoals) ? "BlueTeam" : "RedTeam";
+        EndGame(winner);
+    }
 
 
     // Este método lo llamará el tracking cuando te levantes en la zona segura
