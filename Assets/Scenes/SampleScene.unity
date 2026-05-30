@@ -296,7 +296,7 @@ Canvas:
   m_Enabled: 1
   serializedVersion: 3
   m_RenderMode: 2
-  m_Camera: {fileID: 0}
+  m_Camera: {fileID: 2092006274}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
@@ -318,7 +318,7 @@ RectTransform:
   m_GameObject: {fileID: 59186696}
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 30.86147}
-  m_LocalScale: {x: 1, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.08, y: 0.2, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1785420674}
@@ -9608,14 +9608,14 @@ RectTransform:
   m_GameObject: {fileID: 1761817714}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0.4600067}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 10, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 59186700}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -5.9800005, y: -90.54001}
+  m_AnchoredPosition: {x: -85, y: -227}
   m_SizeDelta: {x: 4, y: 8}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1779138647
@@ -9795,14 +9795,14 @@ RectTransform:
   m_GameObject: {fileID: 1784840024}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0.4600067}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 10, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 59186700}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 5.8200006, y: -90.54001}
+  m_AnchoredPosition: {x: 85, y: -227}
   m_SizeDelta: {x: 4, y: 8}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1785420673
@@ -9896,17 +9896,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GoalAnimator
   goalImage: {fileID: 1785420675}
   redFrames:
-  - {fileID: 21300000, guid: f106ba13f42720241b39278f97834cef, type: 3}
-  - {fileID: 21300000, guid: 196adf6ea397b5441acfd10add3b40eb, type: 3}
-  - {fileID: 21300000, guid: ba25b0d9977d1984082aa37e1e64da1b, type: 3}
-  - {fileID: 21300000, guid: 973470c99730fa14ca06f2d85d780e54, type: 3}
-  - {fileID: 21300000, guid: 676002b3857469740ac072af9d5dc5ca, type: 3}
+  - {fileID: 21300000, guid: 06d94def4295dc945826297b8de53200, type: 3}
+  - {fileID: 21300000, guid: a73829d5c4bc9e8478b7198523cf9f36, type: 3}
+  - {fileID: 21300000, guid: e18e468624ae63e43a2aa7652e42a6a9, type: 3}
+  - {fileID: 21300000, guid: d423902714f3cd643ab92a13ced68104, type: 3}
+  - {fileID: 21300000, guid: d0f802c2207abe74a8b5b297a4d6f50e, type: 3}
   blueFrames:
-  - {fileID: 21300000, guid: 7c9e1977d81b58449b96eaca66d07076, type: 3}
-  - {fileID: 21300000, guid: 4f053092904b199488c809c9c64617f5, type: 3}
-  - {fileID: 21300000, guid: 4c39d8518f9511f4fa8fd0ff9843ffbd, type: 3}
-  - {fileID: 21300000, guid: 2025e4dfdc8f4ff4dbbb7654ecac1dc7, type: 3}
-  - {fileID: 21300000, guid: d2e60edf4f4353a43ae4652c7c8a07a2, type: 3}
+  - {fileID: 21300000, guid: 9fcd91a4523e60d4f948640fe98c989b, type: 3}
+  - {fileID: 21300000, guid: 534e20947a8928d46935b904ec8cde08, type: 3}
+  - {fileID: 21300000, guid: 18a17a5adb67a3847b2d727e7a46f3ee, type: 3}
+  - {fileID: 21300000, guid: 7bcc1d5ddba117a4b84377d7758954bb, type: 3}
+  - {fileID: 21300000, guid: 4709297832b567048a9da3e4d5fba451, type: 3}
   entryFrameRate: 0.08
   holdDuration: 2
   exitDuration: 0.4
