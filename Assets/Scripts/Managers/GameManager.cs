@@ -235,6 +235,18 @@ public class GameManager : MonoBehaviour
 
     public void StartMatch()
     {
+        // Resetear posiciones aqui, cuando ball y fichas ya estan activas
+        foreach (var item in initialTransforms)
+        {
+            Rigidbody rb = item.Key;
+            if (rb == null) continue;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.position = item.Value.pos;
+            rb.rotation = item.Value.rot;
+            rb.transform.position = item.Value.pos;
+            rb.transform.rotation = item.Value.rot;
+        }
         blueScore = 0;
         redScore = 0;
         goalInProgress = false;
